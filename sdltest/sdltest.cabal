@@ -1,6 +1,6 @@
-cabal-version: 1.12
+cabal-version: 2.0
 
--- This file has been generated from package.yaml by hpack version 0.35.0.
+-- This file has been generated from package.yaml by hpack version 0.35.1.
 --
 -- see: https://github.com/sol/hpack
 
@@ -24,28 +24,42 @@ source-repository head
   location: https://github.com/githubuser/sdltest
 
 library
+  exposed-modules:
+      Lib
   other-modules:
+      Paths_sdltest
+  autogen-modules:
       Paths_sdltest
   hs-source-dirs:
       src
   build-depends:
       base >=4.7 && <5
+    , relude >=1.1.0.0 && <1.2
     , sdl2
     , sdl2-ttf
+  mixins:
+      base hiding (Prelude)
+    , relude (Relude as Prelude)
   default-language: Haskell2010
 
 executable sdltest-exe
   main-is: Main.hs
   other-modules:
       Paths_sdltest
+  autogen-modules:
+      Paths_sdltest
   hs-source-dirs:
       app
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , relude >=1.1.0.0 && <1.2
     , sdl2
     , sdl2-ttf
     , sdltest
+  mixins:
+      base hiding (Prelude)
+    , relude (Relude as Prelude)
   default-language: Haskell2010
 
 test-suite sdltest-test
@@ -53,12 +67,18 @@ test-suite sdltest-test
   main-is: Spec.hs
   other-modules:
       Paths_sdltest
+  autogen-modules:
+      Paths_sdltest
   hs-source-dirs:
       test
   ghc-options: -threaded -rtsopts -with-rtsopts=-N
   build-depends:
       base >=4.7 && <5
+    , relude >=1.1.0.0 && <1.2
     , sdl2
     , sdl2-ttf
     , sdltest
+  mixins:
+      base hiding (Prelude)
+    , relude (Relude as Prelude)
   default-language: Haskell2010

@@ -20,7 +20,14 @@ extra-source-files:
 description:         Please see the README on GitHub at <https://github.com/githubuser/sdltest#readme>
 
 dependencies:
-- base >= 4.7 && < 5
+- name: base
+  version: ">= 4.7 && < 5"
+  mixin:
+    - hiding (Prelude)
+- name: relude
+  version: "^>= 1.1.0.0"
+  mixin:
+    - (Relude as Prelude)
 - sdl2
 - sdl2-ttf
 

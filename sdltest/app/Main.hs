@@ -51,7 +51,8 @@ appLoop renderer texs = do
   let rects = map (\(V4 x y w h) -> Rectangle (P (V2 x y)) (V2 w h))
                                     [V4 30 300 300 50,V4 200 200 100 100]
   mapM_ (\(s,tex) -> copy renderer tex Nothing (Just s)) (zip rects texs)
-  showOneChar renderer (head texs) 40 (V2 50 400) 'f'
+  let Just ht = viaNonEmpty head texs
+  showOneChar renderer ht 40 (V2 50 400) 'f'
   present renderer
   unless qPressed (appLoop renderer texs)
 

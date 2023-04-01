@@ -58,8 +58,9 @@ nounJ = M.fromList
 getRand :: Int -> IO Int
 getRand i = randomRIO (0,i-1)
 
-makeSentence :: M.Map JpSubject Subject -> M.Map JpVerb (Verb,[Wtype],[Jtype]) -> IO () 
-makeSentence sujL verbL = do
+makeSentence :: Int -> M.Map JpSubject Subject -> M.Map JpVerb (Verb,[Wtype],[Jtype]) -> IO (String,String) 
+makeSentence 0 _ _ = return ("","")
+makeSentence i sujL verbL = do
   let subSize = M.size sujL  
   sr <- getRand subSize
   let (jsub,esub) = M.elemAt sr sujL
@@ -73,9 +74,19 @@ makeSentence sujL verbL = do
   tseL <- mapM typeToString verbteL
   let tsjL = map (jtypeToString tseL) verbtjL
       eresL = esub : verbN : tseL 
-      jresL = jsub : tsjL ++ [jverb] 
-  putStrLn (unwords eresL ++ ".") 
-  putStrLn (unwords jresL) 
+      jresL = putChars '[' ']' jsub : tsjL ++ [putChars '<' '>' jverb] 
+      qresL = "[     ]" : "<     >" : tseL
+      nsujL' = if nsujL==M.empty then subJ else nsujL 
+      nverbL' = if nverbL==M.empty then verbJ else nverbL
+  (newQuestion,newAnswer) <- makeSentence (i-1) nsujL' nverbL'
+  let question = (show i ++ ".  " ++ unwords jresL) ++ "\n" ++ ("     " ++ unwords qresL ++ ".")
+      answer = show i ++ ".  " ++ unwords eresL ++ "." 
+  putStrLn question
+  putStrLn answer
+  return (newQuestion ++ "\n" ++ question, newAnswer ++ "\n" ++ answer)
+
+putChars :: Char -> Char -> String -> String
+putChars h l str = h:str++[l]
 
 jtypeToString :: [String] -> Jtype -> String
 jtypeToString tL jt =
@@ -109,5 +120,8 @@ typeToNoun t = do
 
 main :: IO ()
 main = do
-  makeSentence subJ verbJ
+  (q,a) <- makeSentence 15 subJ verbJ
+  putStrLn q
+  putStrLn a
+  return ()
 

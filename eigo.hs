@@ -3,8 +3,9 @@ import qualified Data.Map.Strict as M
 import Myfile
 
 data Be = Am | Are | Is deriving Eq
-data Wtype = Wo | Ni | Kr | To | Fr | Th | Fo | Pl | Pa  deriving Eq
--- を, に, から, To, From, Thing, Food, Place, Parson
+data Wtype =  To | Fr | Th | Fo | Pl | Pa  deriving Eq
+-- To, From, Thing, Food, Place, Parson
+data Jtype = Wo | Ni | Kr | P Int deriving Eq
 data Nc = Cn | Un deriving Eq -- Countable, Uncountable
 
 type Subject = String
@@ -14,6 +15,7 @@ type VerbS = String
 type JpVerb = String
 type Noun = String
 type JpNoun = String
+type Athe = String
 
 subB :: M.Map Subject Be
 subB = M.fromList 
@@ -22,73 +24,90 @@ subB = M.fromList
 subJ :: M.Map JpSubject Subject 
 subJ = M.fromList 
   [("私は","I"),("あなたは","You"),("あなたたちは","You"),("私たちは","We")
-  ,("彼は","He"),("彼女は","She"),("彼らは","They"),("それらは","They"),("それは","It")]
-
-verbTj :: M.Map JpVerb [Wtype] 
-verbTj = M.fromList
-  [("あげる",[Th,Wo,Pa,Ni]),("もらう",[Pa,Kr,Th,Wo]),("つれていく",[Pa,Wo,Pl,Ni]),("買う",[Th,Wo])
-  ,("食べる",[Fo,Wo]),("見る",[Th,Wo]),("行く",[Pl,Ni]),("来る",[Pl,Ni])]
-
-verbTe :: M.Map Verb [Wtype] 
-verbTe = M.fromList
-  [("give",[Th,To,Pa]),("take",[Pa,To,Pl]),("buy",[Th]),("eat",[Fo]),("see",[Th])
-  ,("go",[To,Pl]),("come",[To,Pl])]
+  ,("彼は","He"),("彼女は","She"),("彼らは","They")]
 
 verbNow :: M.Map Verb VerbS 
 verbNow = M.fromList 
   [("give","gives"),("take","takes"),("buy","buys"),("eat","eats"),("see","sees")
   ,("go","goes"),("come","comes")]
 
-verbJ :: M.Map JpVerb Verb 
+verbJ :: M.Map JpVerb (Verb,[Wtype],[Jtype])
 verbJ = M.fromList
-  [("あげる","give"),("もらう","take"),("つれていく","take"),("買う","buy"),("食べる","eat")
-  ,("見る","see"),("行く","go"),("来る","come")]
+  [("あげる",("give",[Th,To,Pa],[P 0,Wo,P 2,Ni]))
+  ,("もらう",("take",[Th,Fr,Pa],[P 2,Kr,P 0,Wo]))
+  ,("つれていく",("take",[Pa,To,Pl],[P 0,Wo,P 2,Ni]))
+  ,("買う",("buy",[Th],[P 0,Wo]))
+  ,("食べる",("eat",[Fo],[P 0,Wo]))
+  ,("見る",("see",[Th],[P 0,Wo]))
+  ,("行く",("go",[To,Pl],[P 1,Ni]))
+  ,("来る",("come",[To,Pl],[P 1,Ni]))]
 
-nounC :: M.Map Noun Nc
+nounC :: M.Map Noun Athe 
 nounC = M.fromList
-  [("apple",Cn),("cake",Cn),("pencil",Cn),("note",Cn),("school",Un),("library",Cn)]
+  [("apple","an"),("cake","a"),("pencil","a"),("note","a"),("school",""),("library","the"),("Tom","")]
 
 nounT :: M.Map Noun Wtype
 nounT = M.fromList
-  [("apple",Fo),("cake",Fo),("pencil",Th),("note",Th),("school",Pl),("library",Pl)]
+  [("apple",Fo),("cake",Fo),("pencil",Th),("note",Th),("school",Pl),("library",Pl),("Tom",Pa)]
 
-nounJ :: M.Map JpNoun Noun 
+nounJ :: M.Map Noun JpNoun 
 nounJ = M.fromList
-  [("りんご","apple"),("ケーキ","cake"),("鉛筆","pencil"),("ノート","note")
-  ,("学校","school"),("図書館","library")]
+  [("apple","りんご"),("cake","ケーキ"),("pencil","鉛筆"),("note","ノート")
+  ,("school","学校"),("library","図書館"),("Tom","トム")]
 
 getRand :: Int -> IO Int
-getRand i = randomRIO (0,i)
+getRand i = randomRIO (0,i-1)
 
-makeSentence :: M.Map JpSubject Subject -> M.Map JpVerb Verb -> IO [String]
+makeSentence :: M.Map JpSubject Subject -> M.Map JpVerb (Verb,[Wtype],[Jtype]) -> IO () 
 makeSentence sujL verbL = do
   let subSize = M.size sujL  
-  sr <- getRand (subSize - 1)
+  sr <- getRand subSize
   let (jsub,esub) = M.elemAt sr sujL
       nsujL = M.deleteAt sr sujL
       Just be = M.lookup esub subB
-      verSize = M.size verbJ
-  vr <- getRand (verSize - 1)
-  let (jverb,everb) = M.elemAt vr verbL
+      verSize = M.size verbL
+  vr <- getRand verSize
+  let (jverb,(everb,verbteL,verbtjL)) = M.elemAt vr verbL
       nverbL = M.deleteAt vr verbL
       Just verbN = if be==Is then M.lookup everb verbNow else Just everb
-      Just verbteL = M.lookup everb verbTe
-      Just verbTjL = M.lookup jverb verbTj
-  putStrLn jsub
-  return [jsub]
+  tseL <- mapM typeToString verbteL
+  let tsjL = map (jtypeToString tseL) verbtjL
+      eresL = esub : verbN : tseL 
+      jresL = jsub : tsjL ++ [jverb] 
+  putStrLn (unwords eresL ++ ".") 
+  putStrLn (unwords jresL) 
 
-typeToString :: WType -> IO String
+jtypeToString :: [String] -> Jtype -> String
+jtypeToString tL jt =
+  case jt of
+    Wo -> "を"
+    Ni -> "に"
+    Kr -> "から"
+    P i -> let wd = tL!!i
+               Just jw = M.lookup (last (words wd)) nounJ 
+            in jw
+
+typeToString :: Wtype -> IO String
 typeToString wt =
   case wt of
-    Wo -> undefined -- を
-    Ni -> undefined -- に
-    Kr -> undefined -- から
-    To -> undefined -- to
-    Fr -> undefined -- from
-    Th -> undefined -- Thing
-    Fo -> undefined -- Food
-    Pl -> undefined -- Place
-    Pa -> undefined -- Parson
-    _  -> return ""
+    To -> return "to"
+    Fr -> return "from"
+    Th -> typeToNoun Th 
+    Fo -> typeToNoun Fo 
+    Pl -> typeToNoun Pl 
+    Pa -> typeToNoun Pa 
 
+typeToNoun :: Wtype -> IO String
+typeToNoun t = do
+    let thsL = M.filter (==t) nounT
+        thsSize = M.size thsL
+    tr <- getRand thsSize
+    let noun = fst$M.elemAt tr thsL 
+        Just athe = M.lookup noun nounC
+        res = if athe=="" then noun else athe++" "++noun
+    return res 
+
+main :: IO ()
+main = do
+  makeSentence subJ verbJ
 

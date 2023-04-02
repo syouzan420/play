@@ -1,6 +1,8 @@
 import System.Random (randomRIO)
 import qualified Data.Map.Strict as M
-import Myfile
+import Data.List(isInfixOf)
+import Data.List.Utils(replace)
+import Myfile(fileWrite)
 
 data Be = Am | Are | Is deriving Eq
 data Wtype =  To | Fr | Th | Fo | Pl | Pa  deriving Eq
@@ -79,11 +81,11 @@ makeSentence i sujL verbL = do
       nsujL' = if nsujL==M.empty then subJ else nsujL 
       nverbL' = if nverbL==M.empty then verbJ else nverbL
   (newQuestion,newAnswer) <- makeSentence (i-1) nsujL' nverbL'
-  let question = (show i ++ ".  " ++ unwords jresL) ++ "\n" ++ ("     " ++ unwords qresL ++ ".")
+  let question = (show i ++ ".  " ++ unwords jresL) ++ "\n" ++ ("  " ++ unwords qresL ++ ".")
       answer = show i ++ ".  " ++ unwords eresL ++ "." 
-  putStrLn question
-  putStrLn answer
-  return (newQuestion ++ "\n" ++ question, newAnswer ++ "\n" ++ answer)
+  --putStrLn question
+  --putStrLn answer
+  return (newQuestion ++ question ++ "\n", newAnswer ++ answer ++ "\n")
 
 putChars :: Char -> Char -> String -> String
 putChars h l str = h:str++[l]
@@ -118,10 +120,53 @@ typeToNoun t = do
         res = if athe=="" then noun else athe++" "++noun
     return res 
 
+latexHeader :: String
+latexHeader = unlines
+  ["\\RequirePackage{plautopatch}"
+  ,"\\documentclass[uplatex,"
+  ,"paper=a4,"
+  ,"fontsize=18pt,"
+  ,"jafontsize=16pt,"
+  ,"number_of_lines=30,"
+  ,"line_length=30zh,"
+  ,"baselineskip=25pt,"
+  ,"]{jlreq}"
+  ,"\\usepackage[utf8]{inputenc}"
+  ,"\\usepackage{pxfonts}"
+  ,"\\usepackage[T1]{fontenc}"
+  ,"\\author{yokoP}"
+  ,"\\title{eigo}"
+  ]
+
+strQToLatex :: String -> String
+strQToLatex str =
+  let lns = lines str
+      nlns = map cnvSpace lns
+   in unlines$listQToLatex nlns
+
+cnvSpace :: String -> String
+cnvSpace str = if "     " `isInfixOf` str then replace "     " "\\hspace{3em}" str
+                                          else str
+
+listQToLatex :: [String] -> [String]
+listQToLatex [] = []
+listQToLatex [x] = []
+listQToLatex (x:y:xs) = x:"":y:"\\\\":"":listQToLatex xs
+
+listAToLatex :: [String] -> [String]
+listAToLatex [] = []
+listAToLatex (x:xs) = x:"":listAToLatex xs
+
 main :: IO ()
 main = do
   (q,a) <- makeSentence 15 subJ verbJ
+  let lq = latexHeader ++ "\\begin{document}\n" ++ strQToLatex q ++ "\\end{document}" 
+      la = latexHeader ++ "\\begin{document}\n" ++ unlines (listAToLatex (lines a)) ++ "\\end{document}"
   putStrLn q
   putStrLn a
+  putStrLn lq
+  putStrLn la
+  fileWrite "eQuestion.tex" lq
+  fileWrite "eAnswer.tex" la
   return ()
 

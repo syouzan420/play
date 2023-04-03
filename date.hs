@@ -1,3 +1,6 @@
+module Main where
+
+import System.Environment(getArgs)
 import Data.Time.LocalTime(getZonedTime,ZonedTime(zonedTimeToLocalTime),LocalTime(localDay))
 
 day :: IO String 
@@ -38,3 +41,10 @@ mdday :: Int -> Int -> Int
 mdday c t
   | c==t = if uru t then 366 else 365
   | otherwise = (if uru c then 366 else 365) + mdday (c+1) t
+
+main :: IO ()
+main = do
+  arg <- getArgs
+  let dt = if null arg then "19750420" else head arg
+  nd <- daynow dt
+  print nd

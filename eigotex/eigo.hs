@@ -1,4 +1,7 @@
+module Main where
+
 import System.Random (randomRIO)
+import System.Environment(getArgs)
 import qualified Data.Map.Strict as M
 import Data.List(isInfixOf)
 import Data.List.Utils(replace)
@@ -60,9 +63,10 @@ nounJ = M.fromList
 getRand :: Int -> IO Int
 getRand i = randomRIO (0,i-1)
 
-makeSentence :: Int -> M.Map JpSubject Subject -> M.Map JpVerb (Verb,[Wtype],[Jtype]) -> IO (String,String) 
-makeSentence 0 _ _ = return ("","")
-makeSentence i sujL verbL = do
+makeSentence :: Int -> Int -> M.Map JpSubject Subject -> M.Map JpVerb (Verb,[Wtype],[Jtype])
+                    -> IO (String,String) 
+makeSentence 0 _ _ _ = return ("","")
+makeSentence i qt sujL verbL = do
   let subSize = M.size sujL  
   sr <- getRand subSize
   let (jsub,esub) = M.elemAt sr sujL
@@ -80,7 +84,7 @@ makeSentence i sujL verbL = do
       qresL = "[     ]" : "<     >" : tseL
       nsujL' = if nsujL==M.empty then subJ else nsujL 
       nverbL' = if nverbL==M.empty then verbJ else nverbL
-  (newQuestion,newAnswer) <- makeSentence (i-1) nsujL' nverbL'
+  (newQuestion,newAnswer) <- makeSentence (i-1) qt nsujL' nverbL'
   let question = (show i ++ ".  " ++ unwords jresL) ++ "\n" ++ ("  " ++ unwords qresL ++ ".")
       answer = show i ++ ".  " ++ unwords eresL ++ "." 
   --putStrLn question
@@ -159,7 +163,10 @@ listAToLatex (x:xs) = x:"":listAToLatex xs
 
 main :: IO ()
 main = do
-  (q,a) <- makeSentence 15 subJ verbJ
+  arg <- getArgs
+  let nl = if null arg then 15 else read (head arg) :: Int
+      qt = if null (tail arg) then 3 else read (head$tail arg) :: Int
+  (q,a) <- makeSentence nl qt subJ verbJ
   let lq = latexHeader ++ "\\begin{document}\n" ++ strQToLatex q ++ "\\end{document}" 
       la = latexHeader ++ "\\begin{document}\n" ++ unlines (listAToLatex (lines a)) ++ "\\end{document}"
   putStrLn q

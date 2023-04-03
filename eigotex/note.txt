@@ -1,0 +1,9 @@
+latex install:
+
+% sudo apt install -y texlive-lang-japanese texlive-latex-extra xdvik-ja evince
+
+font setting:
+
+% sudo kanji-config-updmap-sys hiragino
+                                ↑
+                            (hiragino, ipaex, haranoaji, kozuka-pr6n)

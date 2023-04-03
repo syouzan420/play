@@ -3,11 +3,13 @@ module Main where
 import System.Random (randomRIO)
 import System.Environment(getArgs)
 import qualified Data.Map.Strict as M
+import Data.Maybe(fromMaybe)
 import Data.List(isInfixOf)
 import Data.List.Utils(replace)
 import Myfile(fileWrite)
 
 data Be = Am | Are | Is deriving Eq
+data WClass = S | V | C deriving Eq
 data Wtype =  To | Fr | Th | Fo | Pl | Pa  deriving Eq
 -- To, From, Thing, Food, Place, Parson
 data Jtype = Wo | Ni | Kr | P Int deriving Eq
@@ -17,10 +19,12 @@ type Subject = String
 type JpSubject = String
 type Verb = String
 type VerbS = String
+type VerbP = String
 type JpVerb = String
 type Noun = String
 type JpNoun = String
 type Athe = String
+type Qtype = (Bool,Bool,Bool) -- subject, verbNow, verbPast
 
 subB :: M.Map Subject Be
 subB = M.fromList 
@@ -36,16 +40,21 @@ verbNow = M.fromList
   [("give","gives"),("take","takes"),("buy","buys"),("eat","eats"),("see","sees")
   ,("go","goes"),("come","comes")]
 
-verbJ :: M.Map JpVerb (Verb,[Wtype],[Jtype])
+verbPast :: M.Map Verb VerbP 
+verbPast = M.fromList 
+  [("give","gave"),("take","took"),("buy","bought"),("eat","ate"),("see","saw")
+  ,("go","went"),("come","came")]
+
+verbJ :: M.Map JpVerb (Verb,[Wtype],[Jtype],JpVerb)
 verbJ = M.fromList
-  [("あげる",("give",[Th,To,Pa],[P 0,Wo,P 2,Ni]))
-  ,("もらう",("take",[Th,Fr,Pa],[P 2,Kr,P 0,Wo]))
-  ,("つれていく",("take",[Pa,To,Pl],[P 0,Wo,P 2,Ni]))
-  ,("買う",("buy",[Th],[P 0,Wo]))
-  ,("食べる",("eat",[Fo],[P 0,Wo]))
-  ,("見る",("see",[Th],[P 0,Wo]))
-  ,("行く",("go",[To,Pl],[P 1,Ni]))
-  ,("来る",("come",[To,Pl],[P 1,Ni]))]
+  [("あげる",("give",[Th,To,Pa],[P 0,Wo,P 2,Ni],"あげた"))
+  ,("もらう",("take",[Th,Fr,Pa],[P 2,Kr,P 0,Wo],"もらった"))
+  ,("つれていく",("take",[Pa,To,Pl],[P 0,Wo,P 2,Ni],"つれていった"))
+  ,("買う",("buy",[Th],[P 0,Wo],"買った"))
+  ,("食べる",("eat",[Fo],[P 0,Wo],"食べた"))
+  ,("見る",("see",[Th],[P 0,Wo],"見た"))
+  ,("行く",("go",[To,Pl],[P 1,Ni],"行った"))
+  ,("来る",("come",[To,Pl],[P 1,Ni],"来た"))]
 
 nounC :: M.Map Noun Athe 
 nounC = M.fromList
@@ -63,10 +72,10 @@ nounJ = M.fromList
 getRand :: Int -> IO Int
 getRand i = randomRIO (0,i-1)
 
-makeSentence :: Int -> Int -> M.Map JpSubject Subject -> M.Map JpVerb (Verb,[Wtype],[Jtype])
+makeSentence :: Int -> Qtype -> M.Map JpSubject Subject -> M.Map JpVerb (Verb,[Wtype],[Jtype],JpVerb)
                     -> IO (String,String) 
 makeSentence 0 _ _ _ = return ("","")
-makeSentence i qt sujL verbL = do
+makeSentence i qt@(isub,iverN,iverP) sujL verbL = do
   let subSize = M.size sujL  
   sr <- getRand subSize
   let (jsub,esub) = M.elemAt sr sujL
@@ -74,22 +83,38 @@ makeSentence i qt sujL verbL = do
       Just be = M.lookup esub subB
       verSize = M.size verbL
   vr <- getRand verSize
-  let (jverb,(everb,verbteL,verbtjL)) = M.elemAt vr verbL
+  let (jverb,(everb,verbteL,verbtjL,jverbP)) = M.elemAt vr verbL
       nverbL = M.deleteAt vr verbL
-      Just verbN = if be==Is then M.lookup everb verbNow else Just everb
+  wr <- getRand 2
+  let ipr = if iverN && iverP then wr==0 else iverN || (iverP && False) 
+  let verb = makeVerb be ipr everb
   tseL <- mapM typeToString verbteL
   let tsjL = map (jtypeToString tseL) verbtjL
-      eresL = esub : verbN : tseL 
-      jresL = putChars '[' ']' jsub : tsjL ++ [putChars '<' '>' jverb] 
-      qresL = "[     ]" : "<     >" : tseL
+      eresL = esub : verb : tseL 
+      jresL = qWord S True qt jsub : tsjL ++ [qWord V True qt (if ipr then jverb else jverbP)] 
+      qresL = qWord S False qt esub : qWord V False qt verb : tseL
       nsujL' = if nsujL==M.empty then subJ else nsujL 
       nverbL' = if nverbL==M.empty then verbJ else nverbL
   (newQuestion,newAnswer) <- makeSentence (i-1) qt nsujL' nverbL'
   let question = (show i ++ ".  " ++ unwords jresL) ++ "\n" ++ ("  " ++ unwords qresL ++ ".")
       answer = show i ++ ".  " ++ unwords eresL ++ "." 
-  --putStrLn question
-  --putStrLn answer
   return (newQuestion ++ question ++ "\n", newAnswer ++ answer ++ "\n")
+
+makeVerb :: Be -> Bool -> Verb -> Verb
+makeVerb be b ev = 
+  let verb 
+        | b && be==Is = M.lookup ev verbNow
+        | b = Just ev
+        | otherwise = M.lookup ev verbPast 
+   in fromMaybe "" verb 
+
+qWord :: WClass -> Bool -> Qtype -> String -> String
+qWord wc b (isub,iverN,iverP) wd
+   |b = if wc==S && isub then putChars '[' ']' wd 
+                         else if wc==V && (iverN || iverP) then putChars '<' '>' wd else wd
+   |wc==S && isub = "[     ]" 
+   |wc==V && (iverN || iverP) = "<     >"
+   |otherwise = wd
 
 putChars :: Char -> Char -> String -> String
 putChars h l str = h:str++[l]
@@ -124,8 +149,8 @@ typeToNoun t = do
         res = if athe=="" then noun else athe++" "++noun
     return res 
 
-latexHeader :: String
-latexHeader = unlines
+latexHeader :: String -> String
+latexHeader hd = unlines
   ["\\RequirePackage{plautopatch}"
   ,"\\documentclass[uplatex,"
   ,"paper=a4,"
@@ -140,6 +165,10 @@ latexHeader = unlines
   ,"\\usepackage[T1]{fontenc}"
   ,"\\author{yokoP}"
   ,"\\title{eigo}"
+  ,"\\usepackage{fancyhdr}"
+  ,"\\pagestyle{fancy}"
+  ,"    \\lhead{"++hd++"英文練習}"
+  ,"    \\rhead{\\textgt{よこぷり☆}}"
   ]
 
 strQToLatex :: String -> String
@@ -166,9 +195,15 @@ main = do
   arg <- getArgs
   let nl = if null arg then 15 else read (head arg) :: Int
       qt = if null (tail arg) then 3 else read (head$tail arg) :: Int
-  (q,a) <- makeSentence nl qt subJ verbJ
-  let lq = latexHeader ++ "\\begin{document}\n" ++ strQToLatex q ++ "\\end{document}" 
-      la = latexHeader ++ "\\begin{document}\n" ++ unlines (listAToLatex (lines a)) ++ "\\end{document}"
+  let isub = qt==1 || qt==3 || qt==5 || qt==7
+      iverN = qt==2 || qt==3 || qt==6 || qt==7
+      iverP = qt==4 || qt==5 || qt==6 || qt==7
+  (q,a) <- makeSentence nl (isub,iverN,iverP) subJ verbJ
+  let hd0 = if isub then "\\tiny 主語ー" else ""
+      hd1 = if iverN then hd0++"動詞現在形ー" else hd0
+      hd2 = if iverP then hd1++"動詞過去形ー" else hd1
+  let lq = latexHeader hd2 ++ "\\begin{document}\n" ++ strQToLatex q ++ "\\end{document}" 
+      la = latexHeader hd2 ++ "\\begin{document}\n" ++ unlines (listAToLatex (lines a)) ++ "\\end{document}"
   putStrLn q
   putStrLn a
   putStrLn lq

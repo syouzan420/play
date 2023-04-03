@@ -1,4 +1,4 @@
-./eigo $1
+./eigo $1 $2
 uplatex -src -interaction=nonstopmode "eQuestion".tex
 uplatex -src -interaction=nonstopmode "eAnswer".tex
 dvipdfmx "eQuestion".dvi

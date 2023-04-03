@@ -8,12 +8,11 @@ import Data.List(isInfixOf)
 import Data.List.Utils(replace)
 import Myfile(fileWrite)
 
-data Be = Am | Are | Is deriving Eq
+data Be = Be | Am | Are | Is deriving Eq
 data WClass = S | V | C deriving Eq
 data Wtype =  To | Fr | Th | Fo | Pl | Pa  deriving Eq
 -- To, From, Thing, Food, Place, Parson
 data Jtype = Wo | Ni | Kr | P Int deriving Eq
-data Nc = Cn | Un deriving Eq -- Countable, Uncountable
 
 type Subject = String
 type JpSubject = String
@@ -79,25 +78,25 @@ makeSentence i qt@(isub,iverN,iverP) sujL verbL = do
   let subSize = M.size sujL  
   sr <- getRand subSize
   let (jsub,esub) = M.elemAt sr sujL
-      nsujL = M.deleteAt sr sujL
-      Just be = M.lookup esub subB
-      verSize = M.size verbL
+  let nsujL = M.deleteAt sr sujL
+  let be = fromMaybe Be (M.lookup esub subB)
+  let verSize = M.size verbL
   vr <- getRand verSize
   let (jverb,(everb,verbteL,verbtjL,jverbP)) = M.elemAt vr verbL
-      nverbL = M.deleteAt vr verbL
+  let nverbL = M.deleteAt vr verbL
   wr <- getRand 2
-  let ipr = if iverN && iverP then wr==0 else iverN || (iverP && False) 
+  let ipr = if iverN && iverP then wr==0 else iverN || not (iverP || False) 
   let verb = makeVerb be ipr everb
   tseL <- mapM typeToString verbteL
   let tsjL = map (jtypeToString tseL) verbtjL
-      eresL = esub : verb : tseL 
-      jresL = qWord S True qt jsub : tsjL ++ [qWord V True qt (if ipr then jverb else jverbP)] 
-      qresL = qWord S False qt esub : qWord V False qt verb : tseL
-      nsujL' = if nsujL==M.empty then subJ else nsujL 
-      nverbL' = if nverbL==M.empty then verbJ else nverbL
+  let eresL = esub : verb : tseL 
+  let jresL = qWord S True qt jsub : tsjL ++ [qWord V True qt (if ipr then jverb else jverbP)] 
+  let qresL = qWord S False qt esub : qWord V False qt verb : tseL
+  let nsujL' = if nsujL==M.empty then subJ else nsujL 
+  let nverbL' = if nverbL==M.empty then verbJ else nverbL
   (newQuestion,newAnswer) <- makeSentence (i-1) qt nsujL' nverbL'
   let question = (show i ++ ".  " ++ unwords jresL) ++ "\n" ++ ("  " ++ unwords qresL ++ ".")
-      answer = show i ++ ".  " ++ unwords eresL ++ "." 
+  let answer = show i ++ ".  " ++ unwords eresL ++ "." 
   return (newQuestion ++ question ++ "\n", newAnswer ++ answer ++ "\n")
 
 makeVerb :: Be -> Bool -> Verb -> Verb
@@ -125,19 +124,14 @@ jtypeToString tL jt =
     Wo -> "を"
     Ni -> "に"
     Kr -> "から"
-    P i -> let wd = tL!!i
-               Just jw = M.lookup (last (words wd)) nounJ 
-            in jw
+    P i -> let wd = tL!!i in fromMaybe "" (M.lookup (last (words wd)) nounJ)
 
 typeToString :: Wtype -> IO String
 typeToString wt =
   case wt of
     To -> return "to"
     Fr -> return "from"
-    Th -> typeToNoun Th 
-    Fo -> typeToNoun Fo 
-    Pl -> typeToNoun Pl 
-    Pa -> typeToNoun Pa 
+    wt' -> typeToNoun wt' 
 
 typeToNoun :: Wtype -> IO String
 typeToNoun t = do
@@ -149,8 +143,8 @@ typeToNoun t = do
         res = if athe=="" then noun else athe++" "++noun
     return res 
 
-latexHeader :: String -> String
-latexHeader hd = unlines
+latexHeader :: String
+latexHeader = unlines
   ["\\RequirePackage{plautopatch}"
   ,"\\documentclass[uplatex,"
   ,"paper=a4,"
@@ -167,8 +161,7 @@ latexHeader hd = unlines
   ,"\\title{eigo}"
   ,"\\usepackage{fancyhdr}"
   ,"\\pagestyle{fancy}"
-  ,"    \\lhead{"++hd++"英文練習}"
-  ,"    \\rhead{\\textgt{よこぷり☆}}"
+  ,"\\rhead{\\textgt{よこぷり☆}}"
   ]
 
 strQToLatex :: String -> String
@@ -190,24 +183,32 @@ listAToLatex :: [String] -> [String]
 listAToLatex [] = []
 listAToLatex (x:xs) = x:"":listAToLatex xs
 
-main :: IO ()
-main = do
-  arg <- getArgs
+makePages :: [String] -> (String,String) -> IO (String,String)
+makePages arg (pq,pa) = do
   let nl = if null arg then 15 else read (head arg) :: Int
       qt = if null (tail arg) then 3 else read (head$tail arg) :: Int
-  let isub = qt==1 || qt==3 || qt==5 || qt==7
+      isub = qt==1 || qt==3 || qt==5 || qt==7
       iverN = qt==2 || qt==3 || qt==6 || qt==7
       iverP = qt==4 || qt==5 || qt==6 || qt==7
   (q,a) <- makeSentence nl (isub,iverN,iverP) subJ verbJ
-  let hd0 = if isub then "\\tiny 主語ー" else ""
-      hd1 = if iverN then hd0++"動詞現在形ー" else hd0
-      hd2 = if iverP then hd1++"動詞過去形ー" else hd1
-  let lq = latexHeader hd2 ++ "\\begin{document}\n" ++ strQToLatex q ++ "\\end{document}" 
-      la = latexHeader hd2 ++ "\\begin{document}\n" ++ unlines (listAToLatex (lines a)) ++ "\\end{document}"
   putStrLn q
   putStrLn a
-  putStrLn lq
-  putStrLn la
+  let hd0 = if isub then "\\tiny 主語ー" else ""
+      hd1 = if iverN then hd0++"\\tiny 動詞現在形ー" else hd0
+      hd2 = if iverP then hd1++"\\tiny 動詞過去形ー" else hd1
+      hd = "\n\\lhead{"++hd2++"英文練習}\n"
+      nq = pq ++ hd ++ strQToLatex q
+      na = pa ++ hd ++ unlines (listAToLatex (lines a))
+  if length arg > 2 then makePages (drop 2 arg) (nq++"\n\\newpage",na++"\n\\newpage")
+                    else return (nq,na)
+
+
+main :: IO ()
+main = do
+  arg <- getArgs
+  (q,a) <- makePages arg ("","")
+  let lq = latexHeader ++ "\\begin{document}\n" ++ q ++ "\\end{document}" 
+      la = latexHeader ++ "\\begin{document}\n" ++ a ++ "\\end{document}"
   fileWrite "eQuestion.tex" lq
   fileWrite "eAnswer.tex" la
   return ()

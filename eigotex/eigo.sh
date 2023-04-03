@@ -1,5 +1,5 @@
 ghc eigo.hs
-./eigo $1 $2
+./eigo $@
 uplatex -src -interaction=nonstopmode "eQuestion".tex
 uplatex -src -interaction=nonstopmode "eAnswer".tex
 dvipdfmx "eQuestion".dvi

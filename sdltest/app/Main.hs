@@ -27,7 +27,7 @@ main = do
   fontS <- F.blended font (V4 255 255 255 255) "abcdefghijklmnopqrstuvwxyz" 
   F.free font
   window <- createWindow "SDLTEST" myWindow
-  image <- loadBMP "images/kagunomi.bmp"
+  image <- loadBMP "images/cook3.bmp"
   renderer <- createRenderer window (-1) defaultRenderer
   texs <- mapM (createTextureFromSurface renderer) [fontS,image]
   appLoop renderer texs 
@@ -49,7 +49,7 @@ appLoop renderer texs = do
   drawPoint renderer (P (V2 100 100))
   drawLine renderer (P (V2 50 50)) (P (V2 80 80))
   let rects = map (\(V4 x y w h) -> Rectangle (P (V2 x y)) (V2 w h))
-                                    [V4 30 300 300 50,V4 200 200 100 100]
+                                    [V4 30 300 300 50,V4 200 200 50 50]
   mapM_ (\(s,tex) -> copy renderer tex Nothing (Just s)) (zip rects texs)
   let Just ht = viaNonEmpty head texs
   showOneChar renderer ht 40 (V2 50 400) 'f'

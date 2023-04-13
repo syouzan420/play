@@ -3,11 +3,12 @@ module Main where
 import System.Random (randomRIO)
 import System.Environment(getArgs)
 import qualified Data.Map.Strict as M
+import qualified Data.Text as T
 import Data.Maybe(fromMaybe)
 import Data.List(isInfixOf)
 import Data.List.Utils(replace)
 import Data.Char(isDigit)
-import Myfile(fileWrite)
+import Myfile(fileWrite,fileReadT)
 
 data Be = Be | Am | Are | Is deriving Eq
 data WClass = S | V | C deriving Eq
@@ -216,7 +217,7 @@ latexHeader = unlines
   ,"\\title{eigo}"
   ,"\\usepackage{fancyhdr}"
   ,"\\pagestyle{fancy}"
-  ,"\\rhead{\\textgt{よこぷり☆}}"
+  ,"\\rhead{\\scriptsize\\space\\today\\space\\normalsize\\textgt{よこぷり☆}P\\thepage}"
   ]
 
 strQToLatex :: Bool -> String -> String
@@ -257,15 +258,37 @@ makePages arg (pq,pa) = do
   (q,a) <- if ioVerP then makeVerbChange nl verbJ else makeSentence nl (isub,iverN,iverP) subJ verbJ
   putStrLn q
   putStrLn a
-  let hd0 = if isub then "\\tiny 主語ー" else ""
-      hd1 = if iverN then hd0++"\\tiny 動詞現在形ー" else hd0
-      hd2 = if iverP then hd1++"\\tiny 動詞過去形ー" else hd1
-      hd = if ioVerP then "\n\\lhead{\\tiny 動詞ー現在・過去 活用練習}\n" else "\n\\lhead{"++hd2++"英文練習}\n"
+  let hd0 = if isub then "\\scriptsize 主語ー" else ""
+      hd1 = if iverN then hd0++"\\scriptsize 動詞現在形ー" else hd0
+      hd2 = if iverP then hd1++"\\scriptsize 動詞過去形ー" else hd1
+      hd = if ioVerP then "\n\\lhead{\\scriptsize 動詞ー現在・過去 活用練習}\n" else "\n\\lhead{"++hd2++"英文練習}\n"
       nq = pq ++ hd ++ strQToLatex ioVerP q
       na = pa ++ hd ++ unlines (listAToLatex (lines a))
   if length arg > 2 then makePages (drop 2 arg) (nq++"\n\\newpage",na++"\n\\newpage")
                     else return (nq,na)
 
+  {--
+makeParts :: IO ()
+makeParts = do
+  vs <- fileReadT "verb.txt"
+  let vlns = T.lines vs
+  let vpart = makeVerbPart vlns
+  let (jv,vc) = unzip vpart
+  let (vs,vp) = unzip vc
+  let jvm = M.fromList jv
+  let vsm = M.fromList vs
+  let vpm = M.fromList vp
+  print jvm
+  print vsm
+  print vpm
+  return ()
+
+makeVerbPart :: [T.Text] -> [((JpVerb,(Verb,[Wtype],[Jtype],JpVerb)),((Verb,VerbS),(Verb,VerbP)))] 
+makeVerbPart [] = []
+makeVerbPart (v:vs) =
+  let (everb:everbN:everbP:everbF:jverb:jverbP:verbteL:verbtjL:xs) = T.splitOn " " v
+   in ((jverb,(everb,verbteL,verbtjL,jverbP)),((everb,everbN),(everb,everbP))):makeVerbPart vs
+--}
 
 main :: IO ()
 main = do

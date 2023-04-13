@@ -85,7 +85,7 @@ timerProc act ti = do
 
 reshape :: ReshapeCallback
 reshape (Size w h) = do
-  viewport $= (Position 0 0 , (Size w h))
+  viewport $= (Position 0 0 , Size w h)
   matrixMode $= Projection
   loadIdentity
   matrixMode $= Modelview 0

@@ -23,11 +23,12 @@ type JpSubject = String
 type Verb = String
 type VerbS = String
 type VerbP = String
+type VerbI = String
 type JpVerb = String
 type Noun = String
 type JpNoun = String
 type Athe = String
-type Qtype = (Bool,Bool,Bool) -- subject, verbNow, verbPast, onlyVerbPast
+type Qtype = (Bool,Bool,Bool,Bool) -- subject, verbNow, verbPast, verbIng
 
 subB :: M.Map Subject Be
 subB = M.fromList 
@@ -52,27 +53,34 @@ verbPast = M.fromList
   ,("get","got"),("sit","sat"),("draw","drew"),("read","read"),("tell","told")
   ,("have","had"),("leave","left")]
 
+verbIng :: M.Map Verb VerbI 
+verbIng = M.fromList 
+  [("give","giving"),("take","taking"),("buy","buying"),("eat","eating"),("see","seeing")
+  ,("go","going"),("come","coming"),("run","running"),("meet","meeting"),("say","saying")
+  ,("get","getting"),("sit","sitting"),("draw","drawing"),("read","reading"),("tell","telling")
+  ,("have","having"),("leave","leaving")]
 
-verbJ :: M.Map JpVerb (Verb,[Wtype],[Jtype],JpVerb)
+
+verbJ :: M.Map JpVerb (Verb,[Wtype],[Jtype],JpVerb,JpVerb)
 verbJ = M.fromList
-  [("あげる",("give",[Th,To,Pa],[P 0,Wo,P 2,Ni],"あげた"))
-  ,("もらう",("take",[Th,Fr,Pa],[P 2,Kr,P 0,Wo],"もらった"))
-  ,("つれていく",("take",[Pa,To,Pl],[P 0,Wo,P 2,Ni],"つれていった"))
-  ,("買う",("buy",[Th],[P 0,Wo],"買った"))
-  ,("食べる",("eat",[Fo],[P 0,Wo],"食べた"))
-  ,("見る",("see",[Th],[P 0,Wo],"見た"))
-  ,("行く",("go",[To,Pl],[P 1,Ni],"行った"))
-  ,("来る",("come",[To,Pl],[P 1,Ni],"来た"))
-  ,("走る",("run",[],[],"走った"))
-  ,("会う",("meet",[Pa],[P 0,Ni],"会った"))
-  ,("言う",("say",[Gr,To,PaO],[P 2,Ni,P 0,T],"言った"))
-  ,("手に入れる",("get",[Th],[P 0,Wo],"手に入れた"))
-  ,("座る",("sit",[On,CS],[P 1,Ni],"座った"))
-  ,("描く",("draw",[CD],[P 0,Wo],"描いた"))
-  ,("読む",("read",[CR],[P 0,Wo],"読んだ"))
-  ,("伝える",("tell",[PaO,CT],[P 0,Ni,P 1,Wo],"伝えた"))
-  ,("持っている",("have",[Th],[P 0,Wo],"持っていた"))
-  ,("去る",("leave",[Pl],[P 0,Wo],"去った"))
+  [("あげる",("give",[Th,To,Pa],[P 0,Wo,P 2,Ni],"あげた","あげようとしている"))
+  ,("もらう",("take",[Th,Fr,Pa],[P 2,Kr,P 0,Wo],"もらった","もらおうとしている"))
+  ,("つれていく",("take",[Pa,To,Pl],[P 0,Wo,P 2,Ni],"つれていった","つれていこうとしている"))
+  ,("買う",("buy",[Th],[P 0,Wo],"買った","買っているところだ"))
+  ,("食べる",("eat",[Fo],[P 0,Wo],"食べた","食べているところだ"))
+  ,("見る",("see",[Th],[P 0,Wo],"見た","見ているところだ"))
+  ,("行く",("go",[To,Pl],[P 1,Ni],"行った","行こうとしている"))
+  ,("来る",("come",[To,Pl],[P 1,Ni],"来た","来ようとしている"))
+  ,("走る",("run",[],[],"走った","走っているところだ"))
+  ,("会う",("meet",[Pa],[P 0,Ni],"会った","会っているところだ"))
+  ,("言う",("say",[Gr,To,PaO],[P 2,Ni,P 0,T],"言った","言っているところだ"))
+  ,("手に入れる",("get",[Th],[P 0,Wo],"手に入れた","手に入れているところだ"))
+  ,("座る",("sit",[On,CS],[P 1,Ni],"座った","座っているところだ"))
+  ,("描く",("draw",[CD],[P 0,Wo],"描いた","描いているところだ"))
+  ,("読む",("read",[CR],[P 0,Wo],"読んだ","読んでいるところだ"))
+  ,("伝える",("tell",[PaO,CT],[P 0,Ni,P 1,Wo],"伝えた","伝えているところだ"))
+  ,("持っている",("have",[Th],[P 0,Wo],"持っていた","持とうとしている"))
+  ,("去る",("leave",[Pl],[P 0,Wo],"去った","去ろうとしている"))
   ]
 
 nounC :: M.Map Noun Athe 
@@ -106,15 +114,15 @@ nounJ = M.fromList
 getRand :: Int -> IO Int
 getRand i = randomRIO (0,i-1)
 
-makeVerbChange :: Int -> M.Map JpVerb (Verb,[Wtype],[Jtype],JpVerb) -> IO (String,String)
+makeVerbChange :: Int -> M.Map JpVerb (Verb,[Wtype],[Jtype],JpVerb,JpVerb) -> IO (String,String)
 makeVerbChange 0 _ = return ("","")
 makeVerbChange i verbL = do
   let verSize = M.size verbL
   vr <- getRand verSize
-  let (jverb,(everb,_,_,_)) = M.elemAt vr verbL
+  let (jverb,(everb,_,_,_,_)) = M.elemAt vr verbL
   let nverbL = M.deleteAt vr verbL
   let nverbL' = if nverbL==M.empty then verbJ else nverbL
-  let everbP = makeVerb Am False everb
+  let everbP = makeVerb Am False False everb
   wv <- getRand 2
   let qverbN = if wv==0 then "<     >" else everb
   let qverbP = if wv==1 then "<     >" else everbP
@@ -124,10 +132,10 @@ makeVerbChange i verbL = do
   return (newQuestion ++ question ++ "\n", newAnswer ++ answer ++ "\n")
 
 
-makeSentence :: Int -> Qtype -> M.Map JpSubject Subject -> M.Map JpVerb (Verb,[Wtype],[Jtype],JpVerb)
+makeSentence :: Int -> Qtype -> M.Map JpSubject Subject -> M.Map JpVerb (Verb,[Wtype],[Jtype],JpVerb,JpVerb)
                     -> IO (String,String) 
 makeSentence 0 _ _ _ = return ("","")
-makeSentence i qt@(isub,iverN,iverP) sujL verbL = do
+makeSentence i qt@(isub,iverN,iverP,iverI) sujL verbL = do
   let subSize = M.size sujL  
   sr <- getRand subSize
   let (jsub,esub) = M.elemAt sr sujL
@@ -135,15 +143,16 @@ makeSentence i qt@(isub,iverN,iverP) sujL verbL = do
   let be = fromMaybe Be (M.lookup esub subB)
   let verSize = M.size verbL
   vr <- getRand verSize
-  let (jverb,(everb,verbteL,verbtjL,jverbP)) = M.elemAt vr verbL
+  let (jverb,(everb,verbteL,verbtjL,jverbP,jverbI)) = M.elemAt vr verbL
   let nverbL = M.deleteAt vr verbL
   wr <- getRand 2
   let ipr = if iverN && iverP then wr==0 else iverN || not (iverP || False) 
-  let verb = makeVerb be ipr everb
+  let verb = makeVerb be ipr iverI everb
   tseL <- mapM typeToString verbteL
   let tsjL = map (jtypeToString tseL) verbtjL
-  let eresL = esub : verb : tseL 
-  let jresL = qWord S True qt jsub : tsjL ++ [qWord V True qt (if ipr then jverb else jverbP)] 
+  let eresL = esub : (if iverI then beVerb be else "") : verb : tseL 
+  let jresL = qWord S True qt jsub : tsjL 
+                          ++ [qWord V True qt (if iverI then jverbI else if ipr then jverb else jverbP)] 
   let qresL = qWord S False qt esub : qWord V False qt verb : tseL
   let nsujL' = if nsujL==M.empty then subJ else nsujL 
   let nverbL' = if nverbL==M.empty then verbJ else nverbL
@@ -152,20 +161,25 @@ makeSentence i qt@(isub,iverN,iverP) sujL verbL = do
   let answer = show i ++ ".  " ++ unwords eresL ++ "." 
   return (newQuestion ++ question ++ "\n", newAnswer ++ answer ++ "\n")
 
-makeVerb :: Be -> Bool -> Verb -> Verb
-makeVerb be b ev = 
+beVerb :: Be -> String
+beVerb be = case be of Am -> "am "; Are -> "are "; Is -> "is "; _ -> "be "
+
+makeVerb :: Be -> Bool -> Bool -> Verb -> Verb
+makeVerb be b b2 ev = 
   let verb 
+        | b2 = M.lookup ev verbIng
         | b && be==Is = M.lookup ev verbNow
         | b = Just ev
         | otherwise = M.lookup ev verbPast 
    in fromMaybe "" verb 
 
 qWord :: WClass -> Bool -> Qtype -> String -> String
-qWord wc b (isub,iverN,iverP) wd
+qWord wc b (isub,iverN,iverP,iverI) wd
    |b = if wc==S && isub then putChars '[' ']' wd 
-                         else if wc==V && (iverN || iverP) then putChars '<' '>' wd else wd
+                         else if wc==V && (iverN || iverP || iverI) then putChars '<' '>' wd else wd
    |wc==S && isub = "[     ]" 
    |wc==V && (iverN || iverP) = "<     >"
+   |wc==V && iverI = "<             >"
    |otherwise = wd
 
 putChars :: Char -> Char -> String -> String
@@ -251,17 +265,19 @@ makePages arg (pq,pa) = do
   let nl = if null arg then 15 else read (head arg) :: Int
       qts = if null (tail arg) then "3" else head$tail arg
       qt = if all isDigit qts then read qts :: Int else 0
-      isub = qt==1 || qt==3 || qt==5 || qt==7
+      isub = qt==1 || qt==3 || qt==5 || qt==7 || qt==9
       iverN = qt==2 || qt==3 || qt==6 || qt==7
       iverP = qt==4 || qt==5 || qt==6 || qt==7
+      iverI = qt==8 || qt==9
       ioVerP = qt==0 && qts=="vp"
-  (q,a) <- if ioVerP then makeVerbChange nl verbJ else makeSentence nl (isub,iverN,iverP) subJ verbJ
+  (q,a) <- if ioVerP then makeVerbChange nl verbJ else makeSentence nl (isub,iverN,iverP,iverI) subJ verbJ
   putStrLn q
   putStrLn a
   let hd0 = if isub then "\\scriptsize 主語ー" else ""
       hd1 = if iverN then hd0++"\\scriptsize 動詞現在形ー" else hd0
       hd2 = if iverP then hd1++"\\scriptsize 動詞過去形ー" else hd1
-      hd = if ioVerP then "\n\\lhead{\\scriptsize 動詞ー現在・過去 活用練習}\n" else "\n\\lhead{"++hd2++"英文練習}\n"
+      hd3 = if iverI then hd2++"\\scriptsize 動詞現在進行形ー" else hd2
+      hd = if ioVerP then "\n\\lhead{\\scriptsize 動詞ー現在・過去 活用練習}\n" else "\n\\lhead{"++hd3++"英文練習}\n"
       nq = pq ++ hd ++ strQToLatex ioVerP q
       na = pa ++ hd ++ unlines (listAToLatex (lines a))
   if length arg > 2 then makePages (drop 2 arg) (nq++"\n\\newpage",na++"\n\\newpage")

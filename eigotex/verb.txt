@@ -1,3 +1,3 @@
-give gives gave given あげる あげた Th,To,Pa 0,Wo,2,Ni
-take takes took taken もらう もらった Th,Fr,Pa 2 Kr 0 Wo つれていく つれていった Pa,To,Pl 0,Wo,2,Ni
-buy buys bought bought 買う 買った Th 0,Wo
+give gives gave given giving あげる あげた あげようとしている Th,To,Pa 0,Wo,2,Ni
+take takes took taken taking もらう もらった Th,Fr,Pa 2,Kr,0,Wo つれていく つれていった つれていこうとしている Pa,To,Pl 0,Wo,2,Ni
+buy buys bought bought buying 買う 買った 買おうとしている Th 0,Wo

@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedStrings #-}
 module Main where
 
 import System.Random (randomRIO)
@@ -8,7 +9,7 @@ import Data.Maybe(fromMaybe)
 import Data.List(isInfixOf)
 import Data.List.Utils(replace)
 import Data.Char(isDigit)
-import Myfile(fileWrite,fileReadT)
+import Myfile(fileWrite,fileReadT,fileWriteT)
 
 data Be = Be | Am | Are | Is deriving Eq
 data WClass = S | V | C deriving Eq
@@ -18,16 +19,13 @@ data Wtype =  To | Fr | On | Th | Fo | Gr | Pl | Pa | PaO | CS | CD | CR | CT de
 data Jtype = Wo | Ni | Kr | T | P Int deriving Eq
 -- を に から と (位置 P)
 
-type Subject = String
-type JpSubject = String
-type Verb = String
-type VerbS = String
-type VerbP = String
-type VerbI = String
-type JpVerb = String
-type Noun = String
-type JpNoun = String
-type Athe = String
+type Subject = T.Text 
+type JpSubject = T.Text 
+type Verb =  T.Text
+type JpVerb = T.Text
+type Noun = T.Text
+type JpNoun = T.Text
+type Athe = T.Text 
 type Qtype = (Bool,Bool,Bool,Bool) -- subject, verbNow, verbPast, verbIng
 
 subB :: M.Map Subject Be
@@ -39,21 +37,21 @@ subJ = M.fromList
   [("私は","I"),("あなたは","You"),("あなたたちは","You"),("私たちは","We")
   ,("彼は","He"),("彼女は","She"),("彼らは","They")]
 
-verbNow :: M.Map Verb VerbS 
+verbNow :: M.Map Verb Verb 
 verbNow = M.fromList 
   [("give","gives"),("take","takes"),("buy","buys"),("eat","eats"),("see","sees")
   ,("go","goes"),("come","comes"),("run","runs"),("meet","meets"),("say","says")
   ,("get","gets"),("sit","sits"),("draw","draws"),("read","reads"),("tell","tells")
   ,("have","has"),("leave","leaves")]
 
-verbPast :: M.Map Verb VerbP 
+verbPast :: M.Map Verb Verb 
 verbPast = M.fromList 
   [("give","gave"),("take","took"),("buy","bought"),("eat","ate"),("see","saw")
   ,("go","went"),("come","came"),("run","ran"),("meet","met"),("say","said")
   ,("get","got"),("sit","sat"),("draw","drew"),("read","read"),("tell","told")
   ,("have","had"),("leave","left")]
 
-verbIng :: M.Map Verb VerbI 
+verbIng :: M.Map Verb Verb 
 verbIng = M.fromList 
   [("give","giving"),("take","taking"),("buy","buying"),("eat","eating"),("see","seeing")
   ,("go","going"),("come","coming"),("run","running"),("meet","meeting"),("say","saying")
@@ -114,7 +112,7 @@ nounJ = M.fromList
 getRand :: Int -> IO Int
 getRand i = randomRIO (0,i-1)
 
-makeVerbChange :: Int -> M.Map JpVerb (Verb,[Wtype],[Jtype],JpVerb,JpVerb) -> IO (String,String)
+makeVerbChange :: Int -> M.Map JpVerb (Verb,[Wtype],[Jtype],JpVerb,JpVerb) -> IO (T.Text,T.Text)
 makeVerbChange 0 _ = return ("","")
 makeVerbChange i verbL = do
   let verSize = M.size verbL
@@ -127,13 +125,13 @@ makeVerbChange i verbL = do
   let qverbN = if wv==0 then "<     >" else everb
   let qverbP = if wv==1 then "<     >" else everbP
   (newQuestion,newAnswer) <- makeVerbChange (i-1) nverbL'
-  let question = show i ++ ".  " ++ jverb ++ ":   現在形: " ++ qverbN ++ "   過去形: " ++ qverbP 
-  let answer = show i ++ ".  " ++ jverb ++ ":   現在形: " ++ everb ++ "   過去形: " ++ everbP 
-  return (newQuestion ++ question ++ "\n", newAnswer ++ answer ++ "\n")
+  let question = T.pack (show i) <> ".  " <> jverb <> ":   現在形: " <> qverbN <> "   過去形: " <> qverbP 
+  let answer = T.pack (show i) <> ".  " <> jverb <> ":   現在形: " <> everb <> "   過去形: " <> everbP 
+  return (newQuestion <> question <> "\n", newAnswer <> answer <> "\n")
 
 
 makeSentence :: Int -> Qtype -> M.Map JpSubject Subject -> M.Map JpVerb (Verb,[Wtype],[Jtype],JpVerb,JpVerb)
-                    -> IO (String,String) 
+                    -> IO (T.Text,T.Text) 
 makeSentence 0 _ _ _ = return ("","")
 makeSentence i qt@(isub,iverN,iverP,iverI) sujL verbL = do
   let subSize = M.size sujL  
@@ -157,11 +155,11 @@ makeSentence i qt@(isub,iverN,iverP,iverI) sujL verbL = do
   let nsujL' = if nsujL==M.empty then subJ else nsujL 
   let nverbL' = if nverbL==M.empty then verbJ else nverbL
   (newQuestion,newAnswer) <- makeSentence (i-1) qt nsujL' nverbL'
-  let question = (show i ++ ".  " ++ unwords jresL) ++ "\n" ++ ("  " ++ unwords qresL ++ ".")
-  let answer = show i ++ ".  " ++ unwords eresL ++ "." 
-  return (newQuestion ++ question ++ "\n", newAnswer ++ answer ++ "\n")
+  let question = (T.pack (show i) <> ".  " <> T.unwords jresL) <> "\n" <> ("  " <> T.unwords qresL <> ".")
+  let answer = T.pack (show i) <> ".  " <> T.unwords eresL <> "." 
+  return (newQuestion <> question <> "\n", newAnswer <> answer <> "\n")
 
-beVerb :: Be -> String
+beVerb :: Be -> T.Text 
 beVerb be = case be of Am -> "am "; Are -> "are "; Is -> "is "; _ -> "be "
 
 makeVerb :: Be -> Bool -> Bool -> Verb -> Verb
@@ -173,7 +171,7 @@ makeVerb be b b2 ev =
         | otherwise = M.lookup ev verbPast 
    in fromMaybe "" verb 
 
-qWord :: WClass -> Bool -> Qtype -> String -> String
+qWord :: WClass -> Bool -> Qtype -> T.Text -> T.Text 
 qWord wc b (isub,iverN,iverP,iverI) wd
    |b = if wc==S && isub then putChars '[' ']' wd 
                          else if wc==V && (iverN || iverP || iverI) then putChars '<' '>' wd else wd
@@ -182,19 +180,19 @@ qWord wc b (isub,iverN,iverP,iverI) wd
    |wc==V && iverI = "<             >"
    |otherwise = wd
 
-putChars :: Char -> Char -> String -> String
-putChars h l str = h:str++[l]
+putChars :: Char -> Char -> T.Text -> T.Text 
+putChars h l str = T.pack $ h:T.unpack str++[l]
 
-jtypeToString :: [String] -> Jtype -> String
+jtypeToString :: [T.Text] -> Jtype -> T.Text 
 jtypeToString tL jt =
   case jt of
     Wo -> "を"
     Ni -> "に"
     Kr -> "から"
     T -> "と"
-    P i -> let wd = tL!!i in fromMaybe "" (M.lookup (last (words wd)) nounJ)
+    P i -> let wd = tL!!i in fromMaybe "" (M.lookup (last (T.words wd)) nounJ)
 
-typeToString :: Wtype -> IO String
+typeToString :: Wtype -> IO T.Text 
 typeToString wt =
   case wt of
     To -> return "to"
@@ -203,18 +201,18 @@ typeToString wt =
     Th -> typeToNoun [Th,Fo,CS] 
     wt' -> typeToNoun [wt'] 
 
-typeToNoun :: [Wtype] -> IO String
+typeToNoun :: [Wtype] -> IO T.Text 
 typeToNoun ts = do
     let thsL = M.filter (`elem` ts) nounT
         thsSize = M.size thsL
     tr <- getRand thsSize
     let noun = fst$M.elemAt tr thsL 
         Just athe = M.lookup noun nounC
-        res = if athe=="" then noun else athe++" "++noun
+        res = if athe=="" then noun else athe<>" "<>noun
     return res 
 
-latexHeader :: String
-latexHeader = unlines
+latexHeader :: T.Text 
+latexHeader = T.unlines
   ["\\RequirePackage{plautopatch}"
   ,"\\documentclass[uplatex,"
   ,"paper=a4,"
@@ -234,33 +232,33 @@ latexHeader = unlines
   ,"\\rhead{\\scriptsize\\space\\today\\space\\normalsize\\textgt{よこぷり☆}P\\thepage}"
   ]
 
-strQToLatex :: Bool -> String -> String
+strQToLatex :: Bool -> T.Text -> T.Text 
 strQToLatex b str =
-  let lns = lines str
+  let lns = T.lines str
       nlns = map cnvSpace lns
       res = if b then listQ2ToLatex nlns else listQToLatex nlns
-   in unlines res
+   in T.unlines res
 
-cnvSpace :: String -> String
+cnvSpace :: T.Text -> T.Text 
 cnvSpace str = 
-  let str2 = if  "     " `isInfixOf` str then replace "     " "\\hspace{3em}" str else str
-      str3 = if  "   " `isInfixOf` str2 then replace "   " "\\hspace{2em}" str2 else str2
+  let str2 = if  "     " `T.isInfixOf` str then T.replace "     " "\\hspace{3em}" str else str
+      str3 = if  "   " `T.isInfixOf` str2 then T.replace "   " "\\hspace{2em}" str2 else str2
    in str3 
 
-listQToLatex :: [String] -> [String]
+listQToLatex :: [T.Text] -> [T.Text]
 listQToLatex [] = []
 listQToLatex [x] = []
 listQToLatex (x:y:xs) = x:"":y:"\\\\":"":listQToLatex xs
 
-listQ2ToLatex :: [String] -> [String]
+listQ2ToLatex :: [T.Text] -> [T.Text]
 listQ2ToLatex [] = []
 listQ2ToLatex (x:xs) = x:"\\\\":"":listQ2ToLatex xs
 
-listAToLatex :: [String] -> [String]
+listAToLatex :: [T.Text] -> [T.Text]
 listAToLatex [] = []
 listAToLatex (x:xs) = x:"":listAToLatex xs
 
-makePages :: [String] -> (String,String) -> IO (String,String)
+makePages :: [String] -> (T.Text,T.Text) -> IO (T.Text,T.Text)
 makePages arg (pq,pa) = do
   let nl = if null arg then 15 else read (head arg) :: Int
       qts = if null (tail arg) then "3" else head$tail arg
@@ -271,16 +269,14 @@ makePages arg (pq,pa) = do
       iverI = qt==8 || qt==9
       ioVerP = qt==0 && qts=="vp"
   (q,a) <- if ioVerP then makeVerbChange nl verbJ else makeSentence nl (isub,iverN,iverP,iverI) subJ verbJ
-  putStrLn q
-  putStrLn a
   let hd0 = if isub then "\\scriptsize 主語ー" else ""
-      hd1 = if iverN then hd0++"\\scriptsize 動詞現在形ー" else hd0
-      hd2 = if iverP then hd1++"\\scriptsize 動詞過去形ー" else hd1
-      hd3 = if iverI then hd2++"\\scriptsize 動詞現在進行形ー" else hd2
-      hd = if ioVerP then "\n\\lhead{\\scriptsize 動詞ー現在・過去 活用練習}\n" else "\n\\lhead{"++hd3++"英文練習}\n"
-      nq = pq ++ hd ++ strQToLatex ioVerP q
-      na = pa ++ hd ++ unlines (listAToLatex (lines a))
-  if length arg > 2 then makePages (drop 2 arg) (nq++"\n\\newpage",na++"\n\\newpage")
+      hd1 = if iverN then hd0<>"\\scriptsize 動詞現在形ー" else hd0
+      hd2 = if iverP then hd1<>"\\scriptsize 動詞過去形ー" else hd1
+      hd3 = if iverI then hd2<>"\\scriptsize 動詞現在進行形ー" else hd2
+      hd = if ioVerP then "\n\\lhead{\\scriptsize 動詞ー現在・過去 活用練習}\n" else "\n\\lhead{"<>hd3<>"英文練習}\n"
+      nq = pq <> hd <> strQToLatex ioVerP q
+      na = pa <> hd <> T.unlines (listAToLatex (T.lines a))
+  if length arg > 2 then makePages (drop 2 arg) (nq<>"\n\\newpage",na<>"\n\\newpage")
                     else return (nq,na)
 
   {--
@@ -299,20 +295,20 @@ makeParts = do
   print vpm
   return ()
 
-makeVerbPart :: [T.Text] -> [((JpVerb,(Verb,[Wtype],[Jtype],JpVerb)),((Verb,VerbS),(Verb,VerbP)))] 
+makeVerbPart :: [T.Text] -> [((JpVerb,(Verb,[Wtype],[Jtype],JpVerb,JpVerb)),((Verb,Verb),(Verb,Verb),(Verb,Verb)))] 
 makeVerbPart [] = []
 makeVerbPart (v:vs) =
-  let (everb:everbN:everbP:everbF:jverb:jverbP:verbteL:verbtjL:xs) = T.splitOn " " v
-   in ((jverb,(everb,verbteL,verbtjL,jverbP)),((everb,everbN),(everb,everbP))):makeVerbPart vs
+  let (everb:everbN:everbP:everbF:everbI:jverb:jverbP:jverbI:verbteL:verbtjL:xs) = T.splitOn " " v
+   in ((jverb,(everb,verbteL,verbtjL,jverbP,jverbI)),((everb,everbN),(everb,everbP),(everb,everbI))):makeVerbPart vs
 --}
 
 main :: IO ()
 main = do
   arg <- getArgs
   (q,a) <- makePages arg ("","")
-  let lq = latexHeader ++ "\\begin{document}\n" ++ q ++ "\\end{document}" 
-      la = latexHeader ++ "\\begin{document}\n" ++ a ++ "\\end{document}"
-  fileWrite "eQuestion.tex" lq
-  fileWrite "eAnswer.tex" la
+  let lq = latexHeader <> "\\begin{document}\n" <> q <> "\\end{document}" 
+      la = latexHeader <> "\\begin{document}\n" <> a <> "\\end{document}"
+  fileWriteT "eQuestion.tex" lq
+  fileWriteT "eAnswer.tex" la
   return ()
 

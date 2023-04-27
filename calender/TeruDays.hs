@@ -1,4 +1,5 @@
-module TeruDays (today,howLong,howManyDays,isDay,daysFromBirth,daysFromTheYear,daysBetweenYears) where
+module TeruDays (YearMonthDay,weeklist,today,howLong,howManyDays,isDay,daysFromBirth
+                ,daysFromTheYear,daysBetweenYears) where
 
 import Data.Time.LocalTime(getZonedTime,ZonedTime(zonedTimeToLocalTime),LocalTime(localDay))
 
@@ -27,12 +28,47 @@ howLong s f =
    in fami - sami
 
 howManyDays :: YearMonthDay -> YearMonthDay -> Day 
-howManyDays sday fday = do
+howManyDays sday fday = 
   let (y,m,d) = splitYearMonthDay sday 
-      (yn,_,_) = splitYearMonthDay fday
+      (yn,mn,dn) = splitYearMonthDay fday
+      syear = min y yn
+      fyear = max y yn
       fyday = 365 - daysFromTheYear sday + (if isUru y then 1 else 0)
       lsday = daysFromTheYear fday 
-   in (fyday + daysBetweenYears (y+1) (yn-1) + lsday)
+   in if y==yn then howManyDaysInYear y (m,d) (mn,dn) else
+      if y+1==yn then fyday + lsday else fyday + daysBetweenYears (syear+1) (fyear-1) + lsday
+
+daysBetweenYears :: Year -> Year -> Day 
+daysBetweenYears syear fyear 
+  | syear>fyear = daysBetweenYears fyear syear
+  | syear==fyear = if isUru fyear then 366 else 365
+  | otherwise = (if isUru syear then 366 else 365) + daysBetweenYears (syear+1) fyear 
+
+daysBetweenMonths :: Month -> Month -> Day 
+daysBetweenMonths smo fmo 
+  | smo>fmo = daysBetweenYears fmo smo 
+  | smo==fmo = daylist!!(smo-1) 
+  | otherwise = daylist!!(smo-1) + daysBetweenMonths (smo+1) fmo 
+
+howManyDaysInYear :: Year -> (Month,Day) -> (Month,Day) -> Day
+howManyDaysInYear y (m0,d0) (m1,d1) = 
+  if m0 == m1 then abs (d1 - d0) else 
+    let dm = abs (m1 - m0)
+        stMonth = min m0 m1 
+        fiMonth = max m0 m1
+        uruEffect = if isUru y && stMonth <= 2 && stMonth+dm > 2 then 1 else 0
+        fmday = if m1>m0 then daylist!!(m0-1) - d0 else daylist!!(m1-1) - d1 
+        lmday = if m1>m0 then d1 else d0
+     in if abs (m1-m0) == 1 then fmday + lmday + uruEffect
+                            else daysBetweenMonths (stMonth + 1) (fiMonth - 1) + fmday + lmday + uruEffect 
+
+--howManyDays :: YearMonthDay -> YearMonthDay -> Day 
+--howManyDays sday fday = do
+--  let (y,m,d) = splitYearMonthDay sday 
+--      (yn,_,_) = splitYearMonthDay fday
+--      fyday = 365 - daysFromTheYear sday + (if isUru y then 1 else 0)
+--      lsday = daysFromTheYear fday 
+--   in (fyday + daysBetweenYears (y+1) (yn-1) + lsday)
 
 isDay :: DayType -> String -> Bool
 isDay t s =
@@ -64,12 +100,6 @@ splitHourMinute s =
   let len = length s
       (ho,mi) = if len==3 then ([head s],tail s) else splitAt 2 s 
    in (read ho, read mi)
-
-daysBetweenYears :: Year -> Year -> Day 
-daysBetweenYears syear fyear 
-  | syear>fyear = daysBetweenYears fyear syear
-  | syear==fyear = if isUru fyear then 366 else 365
-  | otherwise = (if isUru syear then 366 else 365) + daysBetweenYears (syear+1) fyear 
 
 splitYearMonthDay :: YearMonthDay -> (Year, Month, Day)
 splitYearMonthDay (a:b:c:d:e:f:gs) = let (yr,mo,da) = (read [a,b,c,d], read [e,f], read gs)

@@ -1,6 +1,14 @@
 module Main where
 
-import TeruDays
+import TeruDays (YearMonthDay,weeklist,today,howManyDays)
+
+yobiBase :: YearMonthDay 
+yobiBase = "20200419" 
+
+yobi :: YearMonthDay -> Int
+yobi day = let days = howManyDays yobiBase day 
+               yobi = days `mod` 7
+            in if day>=yobiBase then yobi else 7 - yobi
 
 main :: IO ()
 main = do

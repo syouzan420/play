@@ -1,5 +1,5 @@
-module TeruDays (YearMonthDay,weeklist,today,howLong,howManyDays,isDay,daysFromBirth
-                ,daysFromTheYear,daysBetweenYears) where
+module TeruDays (YearMonthDay,Year,Month,Day,weeklist,today,howLong,howManyDays,isDay,daysFromBirth
+                ,daysFromTheYear,daysBetweenYears,isUru,daylist) where
 
 import Data.Time.LocalTime(getZonedTime,ZonedTime(zonedTimeToLocalTime),LocalTime(localDay))
 

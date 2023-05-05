@@ -42,7 +42,7 @@ genMonthHtml ye mo = title++"<table>"++tbl++"</table>\n"
         title = "<a>"++show ye++"年  "++show mo++"月</a>\n"
         hdr = foldl (\acc yb -> acc++"<th>"++yb++"</th>") "" ["日","月","火","水","木","金","土"]
         mdl = foldl (\acc wk -> acc++"<tr>"++
-          foldl (\acc2 dy -> acc2++"<td>"++(if dy==0 then "" else show dy)++"</td>") "" wk
+          foldl (\acc2 dy -> acc2++"<td>"++"<a href=\"./\">"++(if dy==0 then "" else show dy)++"</a></td>") "" wk
                                       ++"</tr>") "" dlst
         tbl = hdr++mdl 
 

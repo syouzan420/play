@@ -1,6 +1,8 @@
+{-# LANGUAGE OverloadedStrings #-}
 module TeruDays (YearMonthDay,Year,Month,Day,weeklist,today,howLong,howManyDays,isDay,daysFromBirth
-                ,daysFromTheYear,daysBetweenYears,isUru,daylist) where
+                ,daysFromTheYear,daysBetweenYears,daysList) where
 
+import Data.String (IsString)
 import Data.Time.LocalTime(getZonedTime,ZonedTime(zonedTimeToLocalTime),LocalTime(localDay))
 
 type YearMonthDay = String
@@ -13,6 +15,9 @@ daylist = [31,28,31,30,31,30,31,31,30,31,30,31]
 
 weeklist :: [String]
 weeklist = ["su","m","tu","w","th","f","sa"]
+
+yobiBase :: YearMonthDay 
+yobiBase = "20200419" 
 
 today :: IO YearMonthDay 
 today = do
@@ -62,14 +67,6 @@ howManyDaysInYear y (m0,d0) (m1,d1) =
      in if abs (m1-m0) == 1 then fmday + lmday + uruEffect
                             else daysBetweenMonths (stMonth + 1) (fiMonth - 1) + fmday + lmday + uruEffect 
 
---howManyDays :: YearMonthDay -> YearMonthDay -> Day 
---howManyDays sday fday = do
---  let (y,m,d) = splitYearMonthDay sday 
---      (yn,_,_) = splitYearMonthDay fday
---      fyday = 365 - daysFromTheYear sday + (if isUru y then 1 else 0)
---      lsday = daysFromTheYear fday 
---   in (fyday + daysBetweenYears (y+1) (yn-1) + lsday)
-
 isDay :: DayType -> String -> Bool
 isDay t s =
   let s' = if head s=='0' then tail s else s 
@@ -112,3 +109,49 @@ daysFromTheYear a = let (y,m,d) = splitYearMonthDay a
 
 daysFromBirth :: YearMonthDay -> IO Day
 daysFromBirth bday = howManyDays bday <$> today
+
+yobi :: YearMonthDay -> Int
+yobi day = let days = howManyDays yobiBase day 
+               yobi = days `mod` 7
+            in if day>=yobiBase then yobi else 7 - yobi
+
+dayYobiList :: Year -> Month -> [(Day,Int)]
+dayYobiList ye mo =
+  let firstDay = show ye ++ show mo ++ "01"
+      firstDaysYobi = yobi firstDay
+      iu = isUru ye
+      lastDay = if mo==2 && iu then 29 else daylist!!(mo-1)
+   in zip [1..lastDay] ([firstDaysYobi..6]++cycle [0::Int,1..6])
+
+weekDaysList :: [(Day,Int)] -> [[Day]]
+weekDaysList [] = []
+weekDaysList [(x,_)] = [[x]]
+weekDaysList ((dy,wd):xs) 
+  |wd==6 = [dy]:weekDaysList xs
+  |otherwise = (dy:h) : t 
+  where (h:t) = weekDaysList xs
+  
+filledWeekDaysList :: [[Day]] -> [[Day]]
+filledWeekDaysList dlst =
+  let fweek = head dlst
+      fwl = length fweek
+      lweek = last dlst
+      lwl = length lweek
+      nfweek = replicate (7-fwl) 0 ++ fweek 
+      nlweek = lweek ++ replicate (7-lwl) 0 
+   in [nfweek]++(tail.init) dlst++[nlweek]
+
+daysList :: Year -> Month -> [[Day]]
+daysList ye mo = filledWeekDaysList.weekDaysList$dayYobiList ye mo
+
+generateCalenderHtml :: (IsString a,Semigroup a) => (Int -> a) -> a -> Year -> Month -> a
+generateCalenderHtml fshow link ye mo = title<>"<table>"<>tbl<>"</table>\n"
+  where dlst = daysList ye mo 
+        title = "<a>"<>fshow ye<>"年  "<>fshow mo<>"月</a>\n"
+        hdr = foldl (\yb -> (<>) ("<th>"<>yb<>"</th>")) "" ["日","月","火","水","木","金","土"]
+        mdl = foldl (\acc wk -> acc<>"<tr>"<>
+                foldl (\acc dy -> acc<>"<td>"<>"<a href="<>link<>">"
+                    <>(if dy==0 then "" else fshow dy)<>"</a></td>") "" wk
+                                           <>"</tr>") "" dlst
+        tbl = hdr<>mdl 
+

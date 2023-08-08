@@ -37,7 +37,8 @@ changeTF :: Integer -> (Integer,Integer) -> [Bool] -> [Bool]
 changeTF _ _ [] = []
 changeTF x (fsi,inv) bls
   | fromIntegral x > length bls - 1 = []
-  | x `mod` inv == fsi || ((x-fsi-1) `mod` inv == 0 && fsi>inv) = False:changeTF (x+1) (fsi,inv) bls
+  | x `mod` inv == fsi || (fsi>inv && (x-fsi-1) `mod` inv == 0) || (fsi==inv && (x-fsi) `mod` inv == 0)
+                                  = False:changeTF (x+1) (fsi,inv) bls
   | otherwise = (bls!!fromIntegral x):changeTF (x+1) (fsi,inv) bls
 
 intvToBool :: Integer -> [(Integer,Integer)] -> [Bool]
@@ -54,3 +55,22 @@ intvToBool' = foldr ((<+>).makeBool) []
 makeBool :: (Integer,Integer) -> [Bool]
 makeBool (fsi,inv) = 
   replicate (fromIntegral fsi) False ++ cycle (True:replicate (fromIntegral inv-1) False)
+
+binToSin :: [Bool] -> (Double -> Double)
+binToSin b = let intvs = intervals b
+              in toSins intvs
+
+toSins :: [(Integer,Integer)] -> (Double -> Double)
+toSins invs x = foldl (\acc (fsi,inv) -> acc+sin ((360/fromIntegral inv)*(x-fromIntegral fsi))) 0 invs
+
+testb :: [Bool]
+testb = tb [1,0,0,1,1,0,0,1,0,1,0,1,1,0,1,0,0,0,1]
+
+testfn :: Double -> Double
+testfn = binToSin testb
+
+testxs :: [Double]
+testxs = [0::Double,1..10]
+
+testys :: [Double]
+testys = map testfn testxs

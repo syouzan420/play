@@ -1,3 +1,4 @@
+--btos -- binary data to sin function
 
 tb :: [Int] -> [Bool]
 tb = map (>0)
@@ -43,8 +44,7 @@ intvToBool :: Integer -> [(Integer,Integer)] -> [Bool]
 intvToBool i intvs = take (fromIntegral i) (intvToBool' intvs)
 
 intvToBool' :: [(Integer,Integer)] -> [Bool]
-intvToBool' [] = []
-intvToBool' (intv:xs) = makeBool intv <+> intvToBool' xs 
+intvToBool' = foldr ((<+>).makeBool) []  
 
 (<+>) :: [Bool] -> [Bool] -> [Bool]
 (<+>) [] bls = bls 
@@ -52,4 +52,5 @@ intvToBool' (intv:xs) = makeBool intv <+> intvToBool' xs
 (<+>) (b0:b0s) (b1:b1s) = (b0||b1):(b0s <+> b1s)
 
 makeBool :: (Integer,Integer) -> [Bool]
-makeBool (fsi,inv) = replicate (fromIntegral fsi) False ++ cycle (True:replicate (fromIntegral inv-1) False)
+makeBool (fsi,inv) = 
+  replicate (fromIntegral fsi) False ++ cycle (True:replicate (fromIntegral inv-1) False)

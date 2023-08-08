@@ -56,18 +56,18 @@ makeBool :: (Integer,Integer) -> [Bool]
 makeBool (fsi,inv) = 
   replicate (fromIntegral fsi) False ++ cycle (True:replicate (fromIntegral inv-1) False)
 
-binToSin :: [Bool] -> (Double -> Double)
-binToSin b = let intvs = intervals b
-              in toSins intvs
+binToCos :: [Bool] -> (Double -> Double)
+binToCos b = let intvs = intervals b
+              in toCos intvs
 
-toSins :: [(Integer,Integer)] -> (Double -> Double)
-toSins invs x = foldl (\acc (fsi,inv) -> acc+sin ((360/fromIntegral inv)*(x-fromIntegral fsi))) 0 invs
+toCos :: [(Integer,Integer)] -> (Double -> Double)
+toCos invs x = foldl (\acc (fsi,inv) -> acc+cos (((2*pi)/fromIntegral inv)*(x-fromIntegral fsi))) 0 invs
 
 testb :: [Bool]
-testb = tb [1,0,0,1,1,0,0,1,0,1,0,1,1,0,1,0,0,0,1]
+testb = tb [1,0,0,1,1,0,0,1,0,1,0,1,1,0,1,0,0,0,1,1,0,1,0,1,1]
 
 testfn :: Double -> Double
-testfn = binToSin testb
+testfn = binToCos testb
 
 testxs :: [Double]
 testxs = [0::Double,1..10]

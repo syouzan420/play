@@ -1,5 +1,14 @@
 --btos -- binary data to sin function
 
+import Graphics.Rendering.Chart.Easy
+import Graphics.Rendering.Chart.Backend.Diagrams(toFile)
+
+main = toFile def "btos.svg" $ do
+  layout_title .= "binary data to cos function"
+  setColors [opaque blue, opaque red]
+  plot (line "f" [zip testxs testys])
+
+
 tb :: [Int] -> [Bool]
 tb = map (>0)
 
@@ -64,13 +73,13 @@ toCos :: [(Integer,Integer)] -> (Double -> Double)
 toCos invs x = foldl (\acc (fsi,inv) -> acc+cos (((2*pi)/fromIntegral inv)*(x-fromIntegral fsi))) 0 invs
 
 testb :: [Bool]
-testb = tb [1,0,0,1,1,0,0,1,0,1,0,1,1,0,1,0,0,0,1,1,0,1,0,1,1]
+testb = tb [1,0,0,1,1,0,0,1,0,1,0,1,1,0,1,0,0,0,1,1,0,1,0,1,1,0]
 
 testfn :: Double -> Double
 testfn = binToCos testb
 
 testxs :: [Double]
-testxs = [0::Double,1..10]
+testxs = [0::Double,0.1..25]
 
 testys :: [Double]
 testys = map testfn testxs

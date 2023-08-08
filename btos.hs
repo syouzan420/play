@@ -4,9 +4,9 @@ import Graphics.Rendering.Chart.Easy
 import Graphics.Rendering.Chart.Backend.Diagrams(toFile)
 
 main = toFile def "btos.svg" $ do
-  layout_title .= "binary data to cos function"
+  layout_title .= "binary data to cos function "++show test++" "++show (intervals testb)
   setColors [opaque blue, opaque red]
-  plot (line "f" [zip testxs testys])
+  plot (line (show funcs) [zip testxs testys])
 
 
 tb :: [Int] -> [Bool]
@@ -70,10 +70,14 @@ binToCos b = let intvs = intervals b
               in toCos intvs
 
 toCos :: [(Integer,Integer)] -> (Double -> Double)
-toCos invs x = foldl (\acc (fsi,inv) -> acc+cos (((2*pi)/fromIntegral inv)*(x-fromIntegral fsi))) 0 invs
+toCos invs x = foldl (\acc (fsi,inv) -> let fi=fromIntegral fsi; iv=fromIntegral inv in acc+(1/iv)^2*cos (((2*pi)/iv)*(x-fi))^2) 0 invs
+
+
+test :: [Int]
+test = [1,0,0,1,1,0,0,1,0,1,0,1,1,0,1,0,0,0,1,1,0,1,0,1,1,0]
 
 testb :: [Bool]
-testb = tb [1,0,0,1,1,0,0,1,0,1,0,1,1,0,1,0,0,0,1,1,0,1,0,1,1,0]
+testb = tb test
 
 testfn :: Double -> Double
 testfn = binToCos testb
@@ -83,3 +87,6 @@ testxs = [0::Double,0.1..25]
 
 testys :: [Double]
 testys = map testfn testxs
+
+funcs :: String
+funcs = "(1/iv)^2*cos (((2*pi)/iv)*(x-fi))^2"

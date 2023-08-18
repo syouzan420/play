@@ -50,8 +50,8 @@ changeTF :: Integer -> Interval -> [Bool] -> [Bool]
 changeTF _ _ [] = []
 changeTF x (fsi,inv) bls
   | fromIntegral x > length bls - 1 = []
-  | x `mod` inv == fsi || (fsi>inv && (x-fsi-1) `mod` inv == 0) || (fsi==inv && (x-fsi) `mod` inv == 0)
-                                  = False:changeTF (x+1) (fsi,inv) bls
+  | x == fsi = False:changeTF (x+1) (0,inv) bls 
+  | x `mod` inv == fsi = False:changeTF (x+1) (fsi,inv) bls
   | otherwise = (bls!!fromIntegral x):changeTF (x+1) (fsi,inv) bls
 
 binToBfunc :: [Bool] -> (Integer -> Bool)
@@ -83,6 +83,12 @@ toCos invs x = foldl (\acc (fsi,inv) -> let fi=fromIntegral fsi; iv=fromIntegral
 
 test :: [Int]
 test = [1,0,0,1,1,0,0,1,0,1,0,1,1,0,1,0,0,0,1,1,0,1,0,1,1,0]
+
+test2 :: [Int]
+test2 = [1,0,0,1,1,0,1,0,1,1,0]
+
+test3 :: [Int]
+test3 = [1,1,0,1,1,0,0,0,1,0,1,0,0,1,1,1,0,1,0,0,1,0,1,1,0,1,0,1,1,1,0,1,1,0,1,0,1,1,0,0,0,1,0,1,1,0,1,0,1,1,0,1,0,1,1,0,1,0,1,0,1,0,0,1,1,1,0,1,1,0,1,1,0,1,0]
 
 testb :: [Bool]
 testb = tb test

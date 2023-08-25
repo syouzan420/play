@@ -4,8 +4,8 @@ module Yokotex(makeTex) where
 import qualified Data.Text as T
 import Myfile(fileWriteT)
 
-type FuncQ = Int->Int->T.Text
-type FuncQIO = Int->Int->IO (T.Text,T.Text)
+type FuncH = Bool->Int->Int->T.Text
+type FuncQAIO = Int->Int->IO (T.Text,T.Text)
 
 latexHeader :: T.Text 
 latexHeader = T.unlines
@@ -43,18 +43,19 @@ listToLatex :: [T.Text] -> [T.Text]
 listToLatex [] = []
 listToLatex (x:xs) = x:"\\\\":"":listToLatex xs
 
-makePages :: [String] -> FuncQIO -> FuncQ -> (T.Text,T.Text) -> IO (T.Text,T.Text)
+makePages :: [String] -> FuncQAIO -> FuncH -> (T.Text,T.Text) -> IO (T.Text,T.Text)
 makePages arg f g (qq,aa) = do
   let tp = if null arg then 0 else read$head arg
       qn = if null arg || null (tail arg) then 30 else read$head$tail arg
   (q,a) <- f tp qn 
-  let h = g tp qn 
-      nq = qq <> h <> strToLatex q 
-      na = aa <> h <> strToLatex a
+  let hq = g True tp qn 
+      ha = g False tp qn
+      nq = qq <> hq <> strToLatex q 
+      na = aa <> ha <> strToLatex a
   if length arg > 2 then makePages (drop 2 arg) f g (nq<>"\n\\newpage",na<>"\n\\newpage")
                     else return (nq,na)
 
-makeTex :: FilePath -> [String] -> FuncQIO -> FuncQ -> IO () 
+makeTex :: FilePath -> [String] -> FuncQAIO -> FuncH -> IO () 
 makeTex fname arg f g = do
   (qs,as) <- makePages arg f g ("","")
   let ltexQ = latexHeader <> "\\begin{document}\n" <> qs <> "\\end{document}"

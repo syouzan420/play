@@ -55,13 +55,14 @@ makeDoc' st i t n
     lns <- makeDoc' nst (i+1) t n
     return (q <> "\n" <> fst lns,a <> "\n" <> snd lns)
 
-makeHead :: Int -> Int -> T.Text
-makeHead t n =
+makeHead :: Bool -> Int -> Int -> T.Text
+makeHead b t n =
   let hd0 = case t of
               0 -> "\\scriptsize かけ算 1桁ー"
               1 -> "\\scriptsize 正負二項計算ー"
               _ -> ""
-      hd = "\n\\lhead{"<>hd0<>"練習}\n"
+      hd = if b then "\n\\lhead{"<>hd0<>"練習}\n"
+                else "\n\\lhead{"<>hd0<>"解答}\n"
    in hd
 
 main :: IO ()

@@ -5,7 +5,7 @@ import qualified Data.Text as T
 import Myfile(fileWriteT)
 
 type FuncQ = Int->Int->T.Text
-type FuncQIO = Int->Int->IO T.Text
+type FuncQIO = Int->Int->IO (T.Text,T.Text)
 
 latexHeader :: T.Text 
 latexHeader = T.unlines
@@ -21,6 +21,7 @@ latexHeader = T.unlines
   ,"\\usepackage[utf8]{inputenc}"
   ,"\\usepackage{pxfonts}"
   ,"\\usepackage[T1]{fontenc}"
+  ,"\\usepackage{multicol}"
   ,"\\author{yokoP}"
   ,"\\title{eigo}"
   ,"\\usepackage{fancyhdr}"
@@ -42,18 +43,22 @@ listToLatex :: [T.Text] -> [T.Text]
 listToLatex [] = []
 listToLatex (x:xs) = x:"\\\\":"":listToLatex xs
 
-makePages :: [String] -> FuncQIO -> FuncQ -> T.Text -> IO T.Text
-makePages arg f g pp = do
+makePages :: [String] -> FuncQIO -> FuncQ -> (T.Text,T.Text) -> IO (T.Text,T.Text)
+makePages arg f g (qq,aa) = do
   let tp = if null arg then 0 else read$head arg
       qn = if null arg || null (tail arg) then 30 else read$head$tail arg
-  p <- f tp qn 
+  (q,a) <- f tp qn 
   let h = g tp qn 
-      np = pp <> h <> strToLatex p 
-  if length arg > 2 then makePages (drop 2 arg) f g (np<>"\n\\newpage") else return np
+      nq = qq <> h <> strToLatex q 
+      na = aa <> h <> strToLatex a
+  if length arg > 2 then makePages (drop 2 arg) f g (nq<>"\n\\newpage",na<>"\n\\newpage")
+                    else return (nq,na)
 
 makeTex :: FilePath -> [String] -> FuncQIO -> FuncQ -> IO () 
 makeTex fname arg f g = do
-  ps <- makePages arg f g ""
-  let ltex = latexHeader <> "\\begin{document}\n" <> ps <> "\\end{document}"
-  fileWriteT (fname++".tex") ltex
+  (qs,as) <- makePages arg f g ("","")
+  let ltexQ = latexHeader <> "\\begin{document}\n" <> qs <> "\\end{document}"
+      ltexA = latexHeader <> "\\begin{document}\n" <> as <> "\\end{document}"
+  fileWriteT (fname++"Q.tex") ltexQ
+  fileWriteT (fname++"A.tex") ltexA
   return ()

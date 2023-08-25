@@ -6,6 +6,8 @@ rm math0.o
 rm math0.hi
 rm Myfile.o
 rm Myfile.hi
+rm Yokotex.o
+rm Yokotex.hi
 rm math0.log
 rm math0.aux
 rm math0.dvi

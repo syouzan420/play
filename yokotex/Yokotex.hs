@@ -4,8 +4,8 @@ module Yokotex(makeTex) where
 import qualified Data.Text as T
 import Myfile(fileWriteT)
 
-type FuncH = Bool->Int->Int->T.Text
-type FuncQAIO = Int->Int->IO (T.Text,T.Text)
+type FuncH = Bool->Int->Int->[Int]->T.Text
+type FuncQAIO = Int->Int->[Int]->IO (T.Text,T.Text)
 
 latexHeader :: T.Text 
 latexHeader = T.unlines
@@ -45,11 +45,13 @@ listToLatex (x:xs) = x:"\\\\":"":listToLatex xs
 
 makePages :: [String] -> FuncQAIO -> FuncH -> (T.Text,T.Text) -> IO (T.Text,T.Text)
 makePages arg f g (qq,aa) = do
-  let tp = if null arg then 0 else read$head arg
+  let tp = if null arg then "" else T.pack$head arg
       qn = if null arg || null (tail arg) then 30 else read$head$tail arg
-  (q,a) <- f tp qn 
-  let hq = g True tp qn 
-      ha = g False tp qn
+      tpsp = if null arg then [] else map (read.T.unpack) (T.split (==',') tp)
+      (tp0,tpe) = if null arg then (0,[]) else (head tpsp,tail tpsp)
+  (q,a) <- f tp0 qn tpe
+  let hq = g True tp0 qn tpe
+      ha = g False tp0 qn tpe
       nq = qq <> hq <> strToLatex q 
       na = aa <> ha <> strToLatex a
   if length arg > 2 then makePages (drop 2 arg) f g (nq<>"\n\\newpage",na<>"\n\\newpage")

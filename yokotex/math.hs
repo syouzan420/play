@@ -16,21 +16,25 @@ type Doc = (T.Text,T.Text)
 toTx :: Int -> T.Text
 toTx i = T.pack$show i
 
-question0 :: State -> Int -> IO (Doc,State)
-question0 st n = do 
-  a <- randomRIO (0,9)
-  b <- randomRIO (0,9)
-  if (a,b) `elem` st then question0 st n else do
-                        let tx = "□  " <> toTx a <> " × " <> toTx b <> " = "
-                            nst = if length st > 90 then [] else (a,b):st
-                            ans ="■  " <> toTx (a*b)
-                        return ((tx,ans),nst)
+question0 :: State -> [Int] -> Int -> IO (Doc,State)
+question0 st te n = do 
+  let (mi,ma) = if length te < 2 then (0,9) else (head te,head$tail te) 
+  a <- randomRIO (mi,ma)
+  b <- randomRIO (mi,ma)
+  if (a,b) `elem` st then question0 st te n else do
+    let txa = if a<0 then "- "<>toTx (abs b) else toTx a 
+        txb = if b<0 then "(- "<>toTx (abs b)<>")" else toTx b
+        tx = "□  " <> txa <> " × " <> txb <> " = "
+        nst = if length st > 90 then [] else (a,b):st
+        ans ="■  " <> toTx (a*b)
+    return ((tx,ans),nst)
 
-question1 :: State -> Int -> IO (Doc,State)
-question1 st n = do
-  a <- randomRIO (-20,20)
-  b <- randomRIO (-20,20)
-  if (a,b) `elem` st || a==0 || b ==0 then question1 st n else do
+question1 :: State -> [Int] -> Int -> IO (Doc,State)
+question1 st te n = do
+  let (mi,ma) = if length te < 2 then (-20,20) else (head te,head$tail te) 
+  a <- randomRIO (mi,ma)
+  b <- randomRIO (mi,ma)
+  if (a,b) `elem` st || a==0 || b ==0 then question1 st te n else do
                         let txa = if a<0 then "- "<>toTx (abs a) else toTx a
                             txb 
                               | b>0 = "+ "<>toTx b
@@ -63,28 +67,28 @@ question2 st n = do
         ans = "$"<>"■  "<>(if rnm<0 then "-" else "")<>"\\frac{"<>toTx (abs rnm)<>"}{"<>toTx rdn<>"}"<>"$"
     return ((tx,ans),nst)
 
-makeDoc :: Int -> Int -> IO Doc 
-makeDoc t n = do
-  let qpl = case t of 0 -> 3; 1 -> 3; _ -> 1
-  (q,a) <- makeDoc' [] 1 t n
+makeDoc :: Int -> Int -> [Int] -> IO Doc 
+makeDoc t n te = do
+  let qpl = case t of 0 -> 3; 1 -> 3; 2 -> 2; _ -> 1
+  (q,a) <- makeDoc' [] 1 t n te
   let qtx = "\\begin{multicols}{"<>toTx qpl<>"}\n"<>q<>"\\end{multicols}"
       atx = "\\begin{multicols}{"<>toTx qpl<>"}\n"<>a<>"\\end{multicols}"
   return (qtx,atx)
 
-makeDoc' :: State -> Int -> Int -> Int -> IO Doc 
-makeDoc' st i t n
+makeDoc' :: State -> Int -> Int -> Int -> [Int] -> IO Doc 
+makeDoc' st i t n te
   | n < i = return (T.empty,T.empty)
   | otherwise = do
     ((q,a),nst) <- case t of 
-                  0 -> question0 st i
-                  1 -> question1 st i
+                  0 -> question0 st te i
+                  1 -> question1 st te i
                   2 -> question2 st i
                   _ -> return ((T.empty,T.empty),st)
-    lns <- makeDoc' nst (i+1) t n
+    lns <- makeDoc' nst (i+1) t n te
     return (q <> "\n" <> fst lns,a <> "\n" <> snd lns)
 
-makeHead :: Bool -> Int -> Int -> T.Text
-makeHead b t n =
+makeHead :: Bool -> Int -> Int -> [Int] -> T.Text
+makeHead b t n te =
   let hd0 = case t of
               0 -> "\\scriptsize かけ算 1桁ー"
               1 -> "\\scriptsize 正負二項計算ー"

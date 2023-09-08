@@ -2,13 +2,15 @@
 module Yokotex(makeTex) where
 
 import qualified Data.Text as T
+import System.Random (randomRIO)
+import Control.Monad (replicateM)
 import Myfile(fileWriteT)
 
 type FuncH = Bool->Int->Int->[Int]->T.Text
 type FuncQAIO = Int->Int->[Int]->IO (T.Text,T.Text)
 
-latexHeader :: T.Text 
-latexHeader = T.unlines
+latexHeader :: T.Text -> T.Text 
+latexHeader rid = T.unlines
   ["\\RequirePackage{plautopatch}"
   ,"\\documentclass[uplatex,"
   ,"paper=a4,"
@@ -26,7 +28,7 @@ latexHeader = T.unlines
   ,"\\title{eigo}"
   ,"\\usepackage{fancyhdr}"
   ,"\\pagestyle{fancy}"
-  ,"\\rhead{\\scriptsize\\space\\today\\space\\normalsize\\textgt{よこぷり☆}P\\thepage}"
+  ,"\\rhead{\\scriptsize\\space\\today\\space\\normalsize\\textgt{よこぷり☆}\\space\\textgt{"<>rid<>"}\\space p\\thepage}"
   ]
 
 cnvSpace :: T.Text -> T.Text 
@@ -43,11 +45,16 @@ listToLatex :: [T.Text] -> [T.Text]
 listToLatex [] = []
 listToLatex (x:xs) = x:"\\\\":"":listToLatex xs
 
+makeRandomID :: IO String
+makeRandomID = do replicateM 3
+    $ do a <- randomRIO (0,26)
+         return (toEnum (65+a) :: Char)
+
 makePages :: [String] -> FuncQAIO -> FuncH -> (T.Text,T.Text) -> IO (T.Text,T.Text)
 makePages arg f g (qq,aa) = do
   let tp = if null arg then "" else T.pack$head arg
       qn = if null arg || null (tail arg) then 30 else read$head$tail arg
-      tpsp = if null arg then [] else map (read.T.unpack) (T.split (==',') tp)
+      tpsp = if null arg then [] else map (\s -> if s=="" then 0 else (read.T.unpack) s) (T.split (==',') tp)
       (tp0,tpe) = if null arg then (0,[]) else (head tpsp,tail tpsp)
   (q,a) <- f tp0 qn tpe
   let hq = g True tp0 qn tpe
@@ -59,9 +66,10 @@ makePages arg f g (qq,aa) = do
 
 makeTex :: FilePath -> [String] -> FuncQAIO -> FuncH -> IO () 
 makeTex fname arg f g = do
+  rid <- makeRandomID
   (qs,as) <- makePages arg f g ("","")
-  let ltexQ = latexHeader <> "\\begin{document}\n" <> qs <> "\\end{document}"
-      ltexA = latexHeader <> "\\begin{document}\n" <> as <> "\\end{document}"
+  let ltexQ = latexHeader (T.pack rid)<> "\\begin{document}\n" <> qs <> "\\end{document}"
+      ltexA = latexHeader (T.pack rid)<> "\\begin{document}\n" <> as <> "\\end{document}"
   fileWriteT (fname++"Q.tex") ltexQ
   fileWriteT (fname++"A.tex") ltexA
   return ()

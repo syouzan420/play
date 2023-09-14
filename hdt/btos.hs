@@ -58,8 +58,8 @@ changeTF :: Integer -> PC -> Bi -> Bi
 changeTF _ _ [] = []
 changeTF x (PC fsi inv) bls
   | fromIntegral x > length bls - 1 = []
-  | x == fsi = False:changeTF (x+1) (PC 0 inv) bls 
-  | x `mod` inv == fsi = False:changeTF (x+1) (PC fsi inv) bls
+  | x == fsi = False:changeTF (x+1) (PC fsi inv) bls 
+  | x `mod` inv == fsi `mod` inv = False:changeTF (x+1) (PC fsi inv) bls
   | otherwise = (bls!!fromIntegral x):changeTF (x+1) (PC fsi inv) bls
 
 binToBfunc :: Bi -> (Integer -> Bool)

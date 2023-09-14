@@ -72,7 +72,8 @@ question1 st ex n = do
   (lps,rps) <- decideParPos (length tms) (minusPositions tms) <&> parPos 0
   let hd = head tms
   if (hd,tms!!1) `elem` st || elem 0 tms then question1 st ex n else do
-    let txh = if hd<0 then "-- "<>(if iskt&&not (null lps)&&(head lps==0) then "(" else T.empty)<>toTx (abs hd) else toTx hd
+    let txh = if hd<0 then "-- "<>(if iskt&&not (null lps)&&(head lps==0) then "(" else T.empty)
+                                <>toTx (abs hd) else toTx hd
         txs = zipWith (\n i -> if n>0 then "+ "<>toTx n<>(if iskt&&elem i rps then ")" else T.empty)
                                       else "-- "<>(if iskt&&elem i lps then "(" else T.empty)
                                                 <>toTx (abs n)

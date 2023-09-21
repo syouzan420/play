@@ -8,8 +8,8 @@ import Numeric(showBin)
 
 type Bi = [Bool]
 
-type Phase = Integer
-type Cycle = Integer
+type Phase = Double 
+type Cycle = Double 
 data PC = PC Phase Cycle deriving Eq
 
 instance Show PC where
@@ -32,45 +32,43 @@ nextTrue [] = 0
 nextTrue (True:xs) = 1
 nextTrue (False:xs) = 1 + nextTrue xs
 
-isPeriodic :: Integer -> Bi -> Bool
+isPeriodic :: Int -> Bi -> Bool
 isPeriodic _ [] = True
-isPeriodic x bls = let xi = fromIntegral x 
-                    in head bls && isPeriodic x (drop xi bls)
+isPeriodic x bls = head bls && isPeriodic x (drop x bls)
 
-nextPTrue :: Integer -> Bi -> Integer
+nextPTrue :: Int -> Bi -> Integer
 nextPTrue x bls = if isPeriodic x bls then x else nextPTrue (x+1) bls
 
-pc :: Integer -> Bi -> PC 
+pc :: Int -> Bi -> PC 
 pc i bls
-  | length bls - 1< fromIntegral i = PC (-1) 0
-  | bls!!fromIntegral i = PC i (nextPTrue 1 (drop (fromIntegral i) bls))
+  | length bls - 1 < i = PC (-1) 0
+  | bls!!i = PC (fromIntegral i) (nextPTrue (i+1) (drop i bls))
   | otherwise = pc (i+1) bls
 
 pcs :: Bi -> [PC]
-pcs bls = let intv = pc 0 bls
-              nbl = nextBoolList intv bls
-           in if intv==PC (-1) 0 then [] else intv:pcs nbl
+pcs bls = let pnc = pc 0 bls
+              nbl = nextBoolList pcls bls
+           in if pnc==PC (-1) 0 then [] else pnc:pcs nbl
 
 nextBoolList :: PC -> Bi -> Bi
 nextBoolList = changeTF 0
 
-changeTF :: Integer -> PC -> Bi -> Bi 
+changeTF :: Int -> PC -> Bi -> Bi 
 changeTF _ _ [] = []
-changeTF x (PC fsi inv) bls
-  | fromIntegral x > length bls - 1 = []
-  | x == fsi = False:changeTF (x+1) (PC fsi inv) bls 
-  | x `mod` inv == fsi `mod` inv = False:changeTF (x+1) (PC fsi inv) bls
-  | otherwise = (bls!!fromIntegral x):changeTF (x+1) (PC fsi inv) bls
+changeTF x (PC p c) bls
+  | x > length bls - 1 = []
+  | x == ip = False:nextTF 
+  | x `mod` ic == ip = False:nextTF
+  | otherwise = (bls!!x):nextTF
+  where nextTF = changeTF (x+1) (PC p c) bls
+        ip = floor p
+        ic = floor c
 
-binToBfunc :: Bi -> (Integer -> Bool)
-binToBfunc b i = let intvs = pcs b
-                  in intvToBool' intvs!!fromIntegral i
+binToBfunc :: Bi -> (Int -> Bool)
+binToBfunc b i = foldr ((<+>).makeBool) [] (pcs b)!!i
 
-intvToBool :: Integer -> [PC] -> Bi
-intvToBool i intvs = take (fromIntegral i) (intvToBool' intvs)
-
-intvToBool' :: [PC] -> Bi
-intvToBool' = foldr ((<+>).makeBool) []  
+intvToBool :: Int -> [PC] -> Bi
+intvToBool i pcls = take i (foldr ((<+>).makeBool) [] pcls)
 
 (<+>) :: Bi -> Bi -> Bi
 (<+>) [] bls = bls 
@@ -78,16 +76,14 @@ intvToBool' = foldr ((<+>).makeBool) []
 (<+>) (b0:b0s) (b1:b1s) = (b0||b1):(b0s <+> b1s)
 
 makeBool :: PC -> Bi
-makeBool (PC fsi inv) = 
-  replicate (fromIntegral fsi) False ++ cycle (True:replicate (fromIntegral inv-1) False)
+makeBool (PC p c) = 
+  replicate (floor p) False ++ cycle (True:replicate (floor c-1) False)
 
 binToCos :: Bi -> (Double -> Double)
-binToCos b = let intvs = pcs b
-              in toCos intvs
+binToCos b = toCos.pcs
 
 toCos :: [PC] -> (Double -> Double)
-toCos invs x = foldl (\acc (PC fsi inv) -> let fi=fromIntegral fsi; iv=fromIntegral inv in acc+(1/iv)^2*cos (((2*pi)/iv)*(x-fi))^2) 0 invs
-
+toCos pcls x = foldl (\acc (PC p c) -> acc+cos (((2*pi)/c)*(x-p))) 0 pcls 
 
 test :: String 
 test = "10011001010110100011010110"

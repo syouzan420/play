@@ -24,6 +24,7 @@ latexHeader rid = T.unlines
   ,"\\usepackage{pxfonts}"
   ,"\\usepackage[T1]{fontenc}"
   ,"\\usepackage{multicol}"
+  ,"\\usepackage{amsmath}"
   ,"\\author{yokoP}"
   ,"\\title{eigo}"
   ,"\\usepackage{fancyhdr}"

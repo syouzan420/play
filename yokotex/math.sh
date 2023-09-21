@@ -1,11 +1,11 @@
-ghc math.hs
-./math $@
+ghc mathMain.hs
+./mathMain $@
 uplatex -src -interaction=nonstopmode "mathQ".tex
 uplatex -src -interaction=nonstopmode "mathA".tex
 dvipdfmx "mathQ".dvi
 dvipdfmx "mathA".dvi
-rm math.o
-rm math.hi
+rm mathMain.o
+rm mathMain.hi
 rm Myfile.o
 rm Myfile.hi
 rm Yokotex.o

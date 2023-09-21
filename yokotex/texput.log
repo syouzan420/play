@@ -1,12 +1,12 @@
-This is e-upTeX, Version 3.14159265-p3.8.3-u1.26-191112-2.6 (utf8.uptex) (TeX Live 2020/Debian) (preloaded format=uplatex 2023.5.30)  25 AUG 2023 12:09
+This is e-upTeX, Version 3.14159265-p3.8.3-u1.26-191112-2.6 (utf8.uptex) (TeX Live 2020/Debian) (preloaded format=uplatex 2023.5.30)  21 SEP 2023 09:17
 entering extended mode
  restricted \write18 enabled.
  Source specials enabled.
  %&-line parsing enabled.
-**mathQ.tex
+**mathA.tex
 
 ! Emergency stop.
-<*> mathQ.tex
+<*> mathA.tex
              
 *** (job aborted, file error in nonstop mode)
 

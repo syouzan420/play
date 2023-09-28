@@ -10,6 +10,7 @@ import Control.Monad (replicateM)
 import Data.List (findIndices)
 import Data.Functor ((<&>))
 import Yokotex(makeTex)
+import Equation(solveEquation)
 
 type State = [(Int,Int)]
 type Ext = [Int] -- extension
@@ -22,15 +23,22 @@ toTx i = T.pack$show i
 
 question0 :: State -> Ext -> Int -> IO (Doc,State)
 question0 st ex n = do 
---  let (mi,ma) = if length ex < 2 then (0,9) else (head ex,head$tail ex) 
-  let (mi,ma) = minma (0,9) ex 
-  a <- randomRIO (mi,ma)
-  b <- randomRIO (mi,ma)
+  -- ex!!0: minNumber, ex!!1: maxNumber, ex!!2: 0-random 1-in order, ex!!3: 1--min&max only affect left term
+  let (mi,ma) = minma (1,9) ex 
+      ior = if length ex < 3 then 0 else ex!!2
+      ima = if length ex < 4 then 0 else ex!!3
+      oa = (n-1) `div` 9 + mi 
+      ob = (n-1) `mod` 9 + 1
+      (mi2,ma2) = if ima==0 then (mi,ma) else (1,9)
+  ra <- randomRIO (mi,ma)
+  rb <- randomRIO (mi2,ma2)
+  let a = if ior==0 then ra else oa 
+      b = if ior==0 then rb else ob
   if (a,b) `elem` st then question0 st ex n else do
     let txa = if a<0 then "- "<>toTx (abs a) else toTx a 
         txb = if b<0 then "(- "<>toTx (abs b)<>")" else toTx b
         tx = "□  " <> txa <> " × " <> txb <> " = "
-        nst = if length st > (ma-mi)*(ma-mi-1) then [] else (a,b):st
+        nst = if length st > (ma-mi+1)*(ma2-mi2) then [] else (a,b):st
         ans ="■  " <> toTx (a*b)
     return ((tx,ans),nst)
 
@@ -70,9 +78,6 @@ minma df ex = let defaultValue = df
 question1 :: State -> Ext -> Int -> IO (Doc,State)
 question1 st ex n = do
   -- ex!!0: minNumber, ex!!1: maxNumber, ex!!2 numberOfTerms, ex!!3 numberOfParenthesis
---  let defaultValue = (-9,9)
---      minma = if length ex < 2 then (-9,9) else (head ex,head$tail ex) 
---      (mi,ma) = if minma==(0,0) then defaultValue else minma
   let (mi,ma) = minma (-9,9) ex
       nt = if length ex < 3 then 2 else ex!!2
       iskt = length ex > 3 && ex!!3>0
@@ -139,12 +144,53 @@ question2 st ex n = do
               ans = "\\tiny"<>T.pack (show n)<>"\\normalsize □  "<>"$"<>(if rnm<0 then "-" else "")<>(if isInt then toTx (abs rnm) else "\\frac{"<>toTx (abs rnm)<>"}{"<>toTx rdn<>"}")<>"$"<>"\\\\"
           return ((tx,ans),nst)
 
+intoTex :: Bool -> Bool -> Int -> T.Text
+intoTex b b2 i -- b:int is in first term, b2: int is in front of a variable
+  | i<0 = "- "<>if b2 && (abs i==1) then T.empty else toTx (abs i)
+  | b = if b2 && (abs i==1) then if i<0 then "-" else T.empty else toTx i
+  | otherwise = "+ "<>if b2 && (abs i==1) then T.empty else toTx i
+
+question3 :: State -> Ext -> Int -> IO (Doc,State)
+question3 st ex n = do 
+--  let (mi,ma) = if length ex < 2 then (0,9) else (head ex,head$tail ex) 
+  let (mi,ma) = minma (-9,9) ex 
+  a <- randomRIO (mi,ma)
+  b <- randomRIO (mi,ma)
+  c <- randomRIO (mi,ma)
+  d <- randomRIO (mi,ma)
+  e <- randomRIO (0::Int,3)
+  let v = "x"
+  if (a,b) `elem` st || a==0 || b==0 || c==0 || d==0 
+                     || (e==0 && a==c) || (e==1 && a==d) || (e==2 && b==c) || (e==3 && b==d) 
+      then question3 st ex n else do
+    let txa = if a<0 then "- "<>toTx (abs a) else toTx a 
+        txb = if b<0 then "(- "<>toTx (abs b)<>")" else toTx b
+        lexp = case e of
+                  0 -> intoTex True True a <>v<>" "<>intoTex False False b
+                  1 -> intoTex True True a <>v<>" "<>intoTex False False b
+                  2 -> intoTex True False a <>" "<>intoTex False True b<>v
+                  3 -> intoTex True False a <>" "<>intoTex False True b<>v
+        rexp = case e of
+                  0 -> intoTex True True c <>v<>" "<>intoTex False False d
+                  1 -> intoTex True False c <>" "<>intoTex False True d<>v
+                  2 -> intoTex True True c <>v<>" "<>intoTex False False d
+                  3 -> intoTex True False c <>" "<>intoTex False True d<>v
+        tx = "\\tiny"<>T.pack (show n)<>"\\normalsize □  $" <> lexp <> " = " <> rexp <> "$\\\\\\\\\\\\"
+        nst = if length st > (ma-mi)*(ma-mi-1) then [] else (a,b):st
+        res = solveEquation (T.unpack (lexp<>"="<>rexp)) (T.head v)
+        rnm = numerator res
+        rdn = denominator res
+        isInt = rdn==1
+        ans = "\\tiny"<>T.pack (show n)<>"\\normalsize □  "<>"$"<>(if rnm<0 then "-" else "")<>(if isInt then toTx (abs rnm) else "\\frac{"<>toTx (abs rnm)<>"}{"<>toTx rdn<>"}")<>"$"<>"\\"
+    return ((tx,ans),nst)
+
 
 makeDoc :: Int -> Int -> Ext -> IO Doc 
 makeDoc t n ex = do
   let qpl = case t of 0 -> 3
                       1 -> if length ex < 3 then 3 else if ex!!2<5 then 2 else 1
                       2 -> 2
+                      3 -> 2
                       _ -> 1
   (q,a) <- makeDoc' [] 1 t n ex 
   let qtx = if qpl==1 then q else "\\begin{multicols}{"<>toTx qpl<>"}\n"<>q<>"\\end{multicols}"
@@ -159,17 +205,21 @@ makeDoc' st i t n ex
                   0 -> question0 st ex i
                   1 -> question1 st ex i
                   2 -> question2 st ex i
+                  3 -> question3 st ex i
                   _ -> return ((T.empty,T.empty),st)
     lns <- makeDoc' nst (i+1) t n ex
     return (q <> "\n" <> fst lns,a <> "\n" <> snd lns)
 
 makeHead :: Bool -> Int -> Int -> Ext -> T.Text
 makeHead b t n ex =
-  let tms = if length ex < 3 then 2 else ex!!2
+  let tms = case t of
+              1 -> if length ex < 3 then 2 else ex!!2
+              2 -> if length ex < 3 then 1 else ex!!2
+              _ -> 0 
       hd0 = case t of
               0 -> "\\scriptsize かけ算 1桁----"
               1 -> "\\scriptsize 正負"<>T.pack (show tms)<>"項計算----"
-              2 -> "\\scriptsize 正負2項計算 1項分数----"
+              2 -> "\\scriptsize 正負2項計算 "<>T.pack (show tms)<>"項分数----"
               _ -> ""
       hd = if b then "\n\\lhead{"<>hd0<>"\\small 練習}\n"
                 else "\n\\lhead{"<>hd0<>"\\small 解答}\n"

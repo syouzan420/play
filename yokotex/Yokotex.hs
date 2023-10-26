@@ -54,7 +54,7 @@ makeRandomID = do replicateM 3
 makePages :: [String] -> FuncQAIO -> FuncH -> (T.Text,T.Text) -> IO (T.Text,T.Text)
 makePages arg f g (qq,aa) = do
   let tp = if null arg then "" else T.pack$head arg
-      qn = if null arg || null (tail arg) then 30 else read$head$tail arg
+      qn = if null arg || null (tail arg) then 40 else read$head$tail arg
       tpsp = if null arg then [] else map (\s -> if s=="" then 0 else (read.T.unpack) s) (T.split (==',') tp)
       (tp0,tpe) = if null arg then (0,[]) else (head tpsp,tail tpsp)
   (q,a) <- f tp0 qn tpe

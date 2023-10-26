@@ -37,6 +37,10 @@ question4 st ex n = do
   let dfEx = [10,10,10,10,30,3,0,2]
       lex = length ex
       lastSpace = if n `mod` 10 == 0 then "" else "\\\\"
+      lastSpaceAns 
+        | n `mod` 20 == 0 = "\\newpage" 
+        | n `mod` 10 == 0 = "\\vfil\\null\\columnbreak" 
+        | otherwise = "\\\\"
       [mx0,mx1,mx2,mx3,wl,pt,tp,mh] = map (setEx ex dfEx) [0..7]
   [frc,mln,mln2,mld,ndef,lor,uh,wih,di] 
         <- mapM randomRIO [(2,mx0),(2,mx1),(2,mx2),(2,mx3),(1,wl),(0,1),(0,1),(0,2),(0,length def4 - 1)]
@@ -57,7 +61,7 @@ question4 st ex n = do
         syo = if isInt then "" else showsu (fromIntegral rnu / fromIntegral rde) 1 
         nst = if length st > (mx1-1)*(mx2-1)*(mx3-1) then [] else (n0,n1):st
         tx = "\\tiny"<>T.pack (show n)<>"\\normalsize □  "<>"$"<>(if ifst then txa<>" \\times "<>txb else txb<>" \\times "<>txa)<>" = "<>"$"<>lastSpace
-        ans = "\\tiny"<>T.pack (show n)<>"\\normalsize □  "<>"$"<>(if isInt then toTx rnu else "\\dfrac{"<>toTx rnu<>"}{"<>toTx rde<>"}")<>"\\hspace{1em}"<>(if isInt then "" else "( "<>T.pack syo<>" )")<>"$"<>lastSpace
+        ans = "\\tiny"<>T.pack (show n)<>"\\normalsize □  "<>"$"<>(if isInt then toTx rnu else "\\dfrac{"<>toTx rnu<>"}{"<>toTx rde<>"}")<>"\\hspace{1em}"<>(if isInt then "" else "( "<>T.pack syo<>" )")<>"$"<>lastSpaceAns
     return ((tx,ans),nst)
 
 

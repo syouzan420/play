@@ -6,7 +6,7 @@ import qualified Data.Text as T
 import Data.Char (isDigit)
 import Data.Tree (Tree(..), Forest(..))
 import Data.Maybe (fromMaybe)
-import MyTree (Elm(..),L,R(..),numR,addElem,showF)
+import MyTree (Elm(..),L,R(..),numR,mtR,ltR,addElem,showF)
   
 type Ta = String 
 data Yo = Kaz | Moz | Io | Def | Spe | Var deriving (Eq, Show) 
@@ -15,7 +15,8 @@ type LR = ([L],[R])
 
 instance Show Mn where
   show (Mn t y) = t 
-    -- case y of Kaz -> "K"; Moz -> "M"; Io -> "I"; Def -> "D"; Spe -> "S"; Var -> "V"
+--     ++ "-" ++
+--     case y of Kaz -> "K"; Moz -> "M"; Io -> "I"; Def -> "D"; Spe -> "S"; Var -> "V"
 
 taiyouMn :: Mn -> (Ta,Yo)
 taiyouMn (Mn t y) = (t,y) 
@@ -43,7 +44,7 @@ defForest fm = let mnList = map getManaFromTree fm
 
 evalDef :: Forest Mn -> Mn 
 evalDef fm = let (dp,dt) = defForest fm
-                 (dpList,dtList) = (words dp, words dt)
+                 (dpList,dtList) = (words dp, (words.T.unpack.addSpaces.T.pack) dt)
                  mnList = map getManaFromTree' fm
                  rmFo = drop (length dpList) fm 
                  (taList,yoList) = unzip$map taiyouMn mnList
@@ -60,7 +61,7 @@ makeMana (Node (Mn "(" _) y0 : Node (Mn ")" _) y1 : xs) = makeMana (Node (makeMa
 makeMana (Node (Mn t0 y0) [] : Node (Mn t1 y1) [] : xs)
   | y0==y1 = case y0 of
       Kaz -> makeMana$Node (Mn (show (read t0 + read t1)) Kaz) []:xs
-      Moz -> makeMana$Node (Mn (t0 ++ t1) Moz) [] : xs
+      Moz -> makeMana$Node (Mn (init t0 ++ " " ++ tail t1) Moz) [] : xs
   | t0 == ")" = makeMana$Node (Mn t1 y1) [] : xs
   | t1 == ")" = makeMana$Node (Mn t0 y0) [] : xs
   | t0 == "(" = makeMana$Node (Mn t1 y1) [] : xs
@@ -72,39 +73,17 @@ makeMana (Node x y : xs)
   | otherwise = makeMana (Node (makeMana nfm) [] : xs)
    where nfm = if fst (taiyouMn x)=="(" then y else Node x [] : y
 
-{--
-makeMana :: Forest Mn -> Mn
-makeMana [] = Mn "" Moz
-makeMana [Node x []] = x
-makeMana (Node (Mn t0 y0) [] : Node (Mn t1 y1) [] : xs)
-  | y0==y1 = case y0 of
-      Kaz -> makeMana$Node (Mn (show (read t0 + read t1)) Kaz) []:xs
-      Moz -> makeMana$Node (Mn (t0 ++ t1) Moz) [] : xs
-  | t0 == ")" = makeMana$Node (Mn t1 y1) [] : xs
-  | t1 == ")" = makeMana$Node (Mn t0 y0) [] : xs
-  | otherwise = Mn "Error" Moz
-makeMana (Node mn [] : Node x y : xs)
-  | fst (taiyouMn x) == ")" = makeMana (Node mn y : xs)
-  | defForest nfm /= ("","") = makeMana (Node mn [] : Node (evalDef nfm) [] : xs)
-  | otherwise = makeMana (Node mn [] : Node (makeMana nfm) [] : xs)
-   where nfm = if fst (taiyouMn x) == "(" then [Node (makeMana y) []] else Node x [] : y
-makeMana (Node x y : xs) 
-  | defForest nfm /= ("","") = makeMana (Node (evalDef nfm) [] : xs)
-  | otherwise = makeMana (Node (makeMana nfm) [] : xs)
-   where nfm = if fst (taiyouMn x) == "(" then y else Node x [] : y
---}
-
-makeManas :: T.Text -> (Forest Mn,LR)
+makeManas :: T.Text -> Forest Mn
 makeManas = makeManas' ([],[]) [] . makeStrings 
 
 getYo :: String -> Yo
 getYo x | isDef x = Def | isMoz x = Moz | isKaz x = Kaz | isIo x = Io | isSpe x = Spe | otherwise = Var
 
-showT :: (Forest Mn,LR) -> IO () 
-showT (fr,lr) = putStrLn (showF fr ++ "\n" ++ show lr)
+showFLR :: (Forest Mn,LR) -> IO () 
+showFLR (fr,lr) = putStrLn (showF fr ++ "\n" ++ show lr)
 
-makeManas' :: LR -> Forest Mn -> [String] -> (Forest Mn,LR)
-makeManas' lr mns [] = (mns, lr)
+makeManas' :: LR -> Forest Mn -> [String] -> Forest Mn
+makeManas' lr mns [] = mns
 makeManas' (pl,pr) mns (x:xs) = 
   let you = getYo x 
       (ls,rs) = if you == Def || you == Io then getLR x (pl,pr) else (pl,pr)
@@ -113,10 +92,10 @@ makeManas' (pl,pr) mns (x:xs) =
         | otherwise = (head ls,tail ls)
       (r,rs') 
         | null rs = (Ri 0,[])
-        | x == ")" = let hr = numR$head rs
-                      in if head rs /= Rc && hr < 1 then 
-                          if head (tail rs) == Rc then (Ri (hr-1),tail$tail rs) else (Ri (hr-1),tail rs) 
-                                                    else (Ri 0,tail rs)
+        | x == ")" = let hr = head rs; ir = numR hr
+                      in if ltR hr 1 then 
+                          if head (tail rs) == Rc then (Ri (ir-1),tail$tail rs) else (Ri (ir-1),tail rs) 
+                                     else (Ri 0, tail rs)
         | otherwise = (head rs,tail rs)
       mnl = length mns
       tk = min mnl l 
@@ -125,16 +104,14 @@ makeManas' (pl,pr) mns (x:xs) =
         | x == "(" = (-1):ls'
         | otherwise = if null ls' then ls' else if head ls'==(-1) then 0:ls' else ls'
       nr 
-        | you /= Def && you /= Spe && numR r > 0 =
+        | you /= Def && you /= Io && you /= Spe && mtR r 0 =
             let nr = numR r - 1 
-             in if nr==0 then 
+             in if nr/=0 then Ri nr:rs' else 
                   if null rs' then Ri 0:rs' 
-                              else let hrs' = numR (head rs') 
-                                    in if head rs'/=Rc && hrs' < 1 then Ri (hrs'-1):tail rs' 
-                                                                   else Ri nr:rs'
-                         else Ri nr:rs'
+                              else let hr' = head rs' ; ir' = numR hr'
+                                    in if ltR hr' 1 then Ri (ir'-1):tail rs' else Ri nr:rs'
         | x == "(" = if null rs then Rc:rs else if numR r==0 then Rc:rs' else Rc:rs
-        | r /= Rc && numR r < 1 = rs'
+        | ltR r 1 = rs'
         | r == Rc = r:rs'
         | otherwise = rs
       nmns = addElem (El (Mn x you) l r) mns 
@@ -175,14 +152,14 @@ isIo [] = False
 isIo str = str `elem` map (getName . fst . fst) ioDef
 
 makeStrings :: T.Text -> [String]
-makeStrings  = words . T.unpack . addSpaces 
+makeStrings  = words . T.unpack . addSpaces . forMath 
 
 addSpaces :: T.Text -> T.Text
 addSpaces txt =
   foldl (\acc nm -> T.replace nm (" "<>nm<>" ") acc) txt (map (T.pack . getName . fst) preDef)
 
-addZero :: T.Text -> T.Text
-addZero = T.replace ")" " 0)" 
+forMath :: T.Text -> T.Text
+forMath = T.replace "+" " " . T.replace "-" " -"
 
 getName :: String -> String
 getName def = let ws = words def
@@ -198,8 +175,11 @@ preDef = nmlDef ++ map (,"") speDef ++ map fst ioDef
 nmlDef :: [(String,String)]
 nmlDef = [("a x b","a b pro"),("a * b","a b pro")]
 
+othDef :: [(String,String)]
+othDef = [("a bon b","a bxa")]
+
 ioDef :: [((String,String),String)]
-ioDef = [(("cls","cls"),"()")]
+ioDef = [(("cls","()"),"cls")]
 
 speDef :: [String]
 speDef = ["(",")","="]

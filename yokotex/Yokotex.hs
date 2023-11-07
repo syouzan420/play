@@ -26,7 +26,7 @@ latexHeader rid = T.unlines
   ,"\\usepackage{multicol}"
   ,"\\usepackage{amsmath}"
   ,"\\author{yokoP}"
-  ,"\\title{eigo}"
+  ,"\\title{yokopuri}"
   ,"\\usepackage{fancyhdr}"
   ,"\\pagestyle{fancy}"
   ,"\\rhead{\\scriptsize\\space\\today\\space\\normalsize\\textgt{よこぷり☆}\\space\\textgt{"<>rid<>"}\\space p\\thepage}"

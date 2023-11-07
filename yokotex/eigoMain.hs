@@ -260,8 +260,8 @@ listAToLatex (x:xs) = x:"":listAToLatex xs
 
 makePages :: [String] -> (T.Text,T.Text) -> IO (T.Text,T.Text)
 makePages arg (pq,pa) = do
-  let nl = if null arg then 15 else read (head arg) :: Int
-      qts = if null (tail arg) then "3" else head$tail arg
+  let qts = if null arg then "3" else head arg
+      nl = if null arg || null (tail arg) then 15 else read (head$tail arg) :: Int
       qt = if all isDigit qts then read qts :: Int else 0
       isub = qt==1 || qt==3 || qt==5 || qt==7 || qt==9
       iverN = qt==2 || qt==3 || qt==6 || qt==7

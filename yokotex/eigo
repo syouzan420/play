@@ -1,0 +1,12 @@
+ghc eigoMain.hs
+./eigoMain $@
+uplatex -src -interaction=nonstopmode "eigoQ".tex
+uplatex -src -interaction=nonstopmode "eigoA".tex
+dvipdfmx "eigoQ".dvi
+dvipdfmx "eigoA".dvi
+rm *.o
+rm *.hi
+rm *.log
+rm *.aux
+rm *.dvi
+rm *.tex

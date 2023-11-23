@@ -35,6 +35,12 @@ strToLatex str =
       res = listToLatex nlns 
    in unlines res
 
+strToDen :: String -> String
+strToDen str =
+  let lns = lines str
+      res = map (cnvRubiD.kakkoD) (kaigyoD lns) 
+   in unlines res
+
 listToLatex :: [String] -> [String]
 listToLatex = map (++"\\\\") 
 
@@ -56,12 +62,39 @@ cnvRubi (x:'：':xs)
   | otherwise = x:cnvRubi xs
 cnvRubi (x:xs) = x:cnvRubi xs
 
+cnvRubiD :: String -> String 
+cnvRubiD [] = []
+cnvRubiD (x:'：':xs)
+  | '：' `elem` xs =
+    let (hd,tl) = break (=='：') xs
+        lhd = length hd
+     in if lhd < 8 then "{"++[x]++"|"++hd++"} "++cnvRubiD (tail tl)
+                   else [x]++"："++cnvRubiD xs
+  | otherwise = x:cnvRubiD xs
+cnvRubiD (x:xs) = x:cnvRubiD xs
+
+kaigyoD :: [String] -> [String]
+kaigyoD [] = [] 
+kaigyoD (x:xs) 
+  | x=="" = "<p><br /></p>" : kaigyoD xs
+  | otherwise = x : kaigyoD xs
+
+kakkoD :: String -> String
+kakkoD [] = []
+kakkoD (x:xs)
+  | x=='（' = " ("++kakkoD xs
+  | x=='）' = ") "++kakkoD xs
+  | otherwise = x : kakkoD xs
+
+
 main :: IO ()
 main = do
   arg <- getArgs
   let fileName = if null arg then "" else head arg
   a <- fileRead fileName 
   let la = latexHeader ++ "\\begin{document}\n" ++ strToLatex a ++ "\\end{document}"
+      dn = strToDen a
   fileWrite (fileName++".tex") la
+  fileWrite ("den_"++fileName) dn 
   return ()
 
